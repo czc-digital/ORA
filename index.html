@@ -168,7 +168,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--txt);border
 <div class="cf" id="cf"><div class="box"><div id="cfT" style="font-weight:600;margin-bottom:6px"></div><div id="cfM" class="muted" style="font-size:14px;margin-bottom:14px"></div><div style="display:flex;gap:8px"><button class="hb" id="cfNo" style="flex:1">Annuler</button><button class="hb" id="cfYes" style="flex:1;background:var(--acc);color:var(--accTxt);border-color:var(--accInk)">Supprimer</button></div></div></div>
 <div class="nt" id="nt"><div class="box" id="ntb"></div></div>
 <div class="toast" id="toast"></div>
-<div class="lock" id="lock"><div style="flex:1;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="96" height="96" viewBox="0 0 200 200">
+<div class="lock" id="lock"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="96" height="96" viewBox="0 0 200 200">
   <defs>
     <radialGradient id="lkbg" cx="0.5" cy="0.35" r="0.8">
       <stop offset="0" stop-color="#23281A"/>
@@ -193,7 +193,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--txt);border
   <circle cx="100" cy="100" r="70" fill="none" stroke="#C6F432" stroke-opacity="0.4" stroke-width="22" stroke-linecap="round" stroke-dasharray="342.1 97.7" transform="rotate(-90 100 100)" filter="url(#lkblur)"/>
   <circle cx="100" cy="100" r="70" fill="none" stroke="url(#lkring)" stroke-width="18" stroke-linecap="round" stroke-dasharray="342.1 97.7" transform="rotate(-90 100 100)"/>
   <circle cx="31.1" cy="87.8" r="8" fill="#F7FFD0"/>
-</svg></div><div class="box"><input id="lkEmail" type="email" autocomplete="username" placeholder="Adresse e-mail" style="width:100%;height:52px;box-sizing:border-box;font-size:16px;margin-bottom:12px"><input id="lkPwd" type="password" autocomplete="current-password" placeholder="Mot de passe" style="width:100%;height:52px;box-sizing:border-box;font-size:16px;margin-bottom:12px"><button class="close" id="lkLogin">Se connecter</button></div></div>
+</svg><div style="margin-top:14px;color:#C6F432;font-family:Gilroy,'Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:20px;letter-spacing:.08em;line-height:1">ORA</div></div><div class="box"><input id="lkEmail" type="email" autocomplete="username" placeholder="Adresse e-mail" style="width:100%;height:52px;box-sizing:border-box;font-size:16px;margin-bottom:12px"><input id="lkPwd" type="password" autocomplete="current-password" placeholder="Mot de passe" style="width:100%;height:52px;box-sizing:border-box;font-size:16px;margin-bottom:12px"><button class="close" id="lkLogin">Se connecter</button></div></div>
 <div class="ov" id="ov"><div class="modal" id="modal"></div></div>
 
 <script>
