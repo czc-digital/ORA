@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Séances">
+<meta name="theme-color" content="#141416">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suivi des séances</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{--sdoneC:#1d1d1f;--done:#C6F432;--doneTxt:#111;--accInk:#111;--bg:#f5f5f3;--card:#fff;--txt:#1d1d1f;--mut:#6b6b70;--acc:#C6F432;--accTxt:#111;--ok:#d7eee2;--warn:#b35c00;--warnbg:#fdf0e0;--line:#e2e2de;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--sdoneC:#ffffff;--done:#C6F432;--doneTxt:#111;--accInk:#C6F432;--bg:#141416;--card:#1f1f23;--txt:#ececec;--mut:#9a9aa2;--acc:#C6F432;--accTxt:#111;--ok:#1f3a2c;--warn:#e89a4a;--warnbg:#3a2a18;--line:#2e2e35;color-scheme:dark}}
+:root[data-theme=dark]{--sdoneC:#ffffff;--done:#C6F432;--doneTxt:#111;--accInk:#C6F432;--bg:#141416;--card:#1f1f23;--txt:#ececec;--mut:#9a9aa2;--acc:#C6F432;--accTxt:#111;--ok:#1f3a2c;--warn:#e89a4a;--warnbg:#3a2a18;--line:#2e2e35;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;scrollbar-width:none}
+*::-webkit-scrollbar{display:none}
+html,body{overflow-x:hidden;max-width:100%}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Nunito,system-ui,sans-serif}
+body{padding:0 0 env(safe-area-inset-bottom,0px)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus{outline:none}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 8px;border-bottom:1px solid var(--line)}
+.wk{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.wk .lbl{font-weight:600;font-size:15px;text-align:center;flex:1}
+.nav{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:16px}
+.wk .nav{background:none;border:none;padding:4px 10px;font-size:22px;line-height:1;color:var(--txt)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mut)}
+.day b{font-size:15px;color:var(--txt)}
+.day i{width:6px;height:6px;border-radius:50%;background:transparent}
+.day.has i{background:var(--mut)}
+.day.ok i{background:var(--acc)}
+.jblock{text-align:center;margin:4px 0 12px}
+.jlabel{display:inline-block;font-size:18px;font-weight:800;padding:6px 15px;border-radius:999px;background:var(--acc);color:var(--accTxt);margin:0 0 10px}
+#pop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:30;padding:16px}
+#pop.show{display:flex}
+.popc{background:var(--card);border:1px solid var(--acc);border-radius:16px;padding:16px;width:min(340px,100%);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.popc h3{margin:0 0 8px;font-family:Gilroy,Montserrat,sans-serif;font-weight:800;color:var(--accInk);font-size:16px}
+.popc ul{margin:0 0 12px 18px;padding:0;font-size:13px;line-height:1.5}
+.popb{display:flex;gap:8px}
+.popb .hb{flex:1;padding:10px}
+.popb .hb.on{background:var(--acc);border-color:var(--acc);color:var(--accTxt)}
+.day.sel{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.day.today b{color:#4f8a10;text-decoration:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .day.today b{color:#C6F432}}
+:root[data-theme=dark] .day.today b{color:#C6F432}
+main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:90px}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+.sumh{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:none;padding:0;font-size:14px;text-align:left;color:var(--txt)}
+.sumd{margin-top:8px}
+.sum .bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0}
+.sum .bar div.over{background:linear-gradient(90deg,#d4a017 0%,#f7d774 50%,#d4a017 100%);background-size:200% 100%;animation:flow 1.6s linear infinite}
+@keyframes flow{from{background-position:200% 0}to{background-position:-200% 0}}
+.dots{display:flex;gap:4px;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);display:inline-block}
+.dot.on{background:var(--acc)}
+#pJDays{display:flex;gap:6px;justify-content:space-between;margin:6px 0 10px}
+.jdc{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:11px;font-weight:600}
+.jdc.on{background:var(--acc);border-color:var(--accInk);color:var(--accTxt)}
+h1,h2,h3,.lbl,.sumh b,.hbox h2,.stickyh h2{font-family:Montserrat,Nunito,sans-serif;font-weight:800;letter-spacing:.01em}
+.jdbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid var(--accInk);border-radius:50%;background:var(--acc);color:var(--accTxt);font:600 12px/1 Nunito,sans-serif;cursor:pointer}
+.tip{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:400;line-height:1.45;color:var(--mut);margin-bottom:12px}
+.hrow{display:flex;align-items:center;gap:8px}
+.hn{flex:1;min-width:0;overflow-wrap:anywhere}
+.row .rp{margin-left:auto;margin-right:10px;text-align:right;white-space:nowrap}
+.grp{border:1px solid var(--line);border-radius:14px;padding:6px 10px;margin-bottom:10px}
+.gt{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:4px 0 2px;text-align:center}
+.ob{font-size:11px;color:var(--mut);font-weight:400;margin-left:4px}
+.grp .row:last-child{border-bottom:none}
+.arr{background:none;border:none;color:var(--mut);font-size:14px;padding:0 6px 0 0}
+.row{align-items:center}
+.hs{white-space:nowrap;color:var(--mut);min-width:36px;text-align:right}
+.hk{white-space:nowrap;font-weight:600;min-width:84px;text-align:right}
+.sum .bar div{height:100%;background:var(--acc)}
+.sum .warn{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 10px;margin-top:8px}
+.muted{color:var(--mut)}
+.sess{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.sh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.sh h3{margin:0;font-size:17px}
+.sh span{font-size:13px;color:var(--mut)}
+.exo{display:flex;width:100%;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 12px;margin-bottom:8px;text-align:left;min-height:64px;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.exo .n{flex:1;font-size:16px;font-weight:600}
+.exo .m{font-size:13px;color:var(--mut);white-space:nowrap}
+.exo .p{font-size:13px;font-weight:600;min-width:34px;text-align:right;touch-action:none;padding:6px 4px;user-select:none}
+.exo.full{background:rgba(198,244,50,.15);border-color:var(--accInk)}
+.exo.armed{outline:2px solid var(--acc)}
+.sdone{width:100%;margin-top:4px;padding:12px;border-radius:12px;border:1.5px solid var(--sdoneC);background:none;color:var(--sdoneC);font-weight:600}
+.sdone.on{background:var(--done);border-color:var(--done);color:var(--doneTxt)}
+.mod{width:100%;margin-top:6px;padding:10px;border-radius:12px;border:1px solid var(--line);background:none;font-weight:600}
+.addex{display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:0;margin:0 0 8px;padding:6px 10px;border:none;border-radius:8px;background:var(--bg);color:var(--accInk);font-size:15px;font-weight:600}
+.addwrap{display:flex;justify-content:center}
+.hbtns{display:flex;gap:6px;flex-wrap:nowrap;white-space:nowrap}
+.sh h3{padding-left:12px;margin:0}
+.hb{padding:6px 9px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:12px;font-weight:600;white-space:nowrap}
+.empty{text-align:center;color:var(--mut);padding:30px 10px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--txt);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.switch{position:relative;width:52px;height:30px;border-radius:999px;background:var(--line);border:none;padding:0;flex-shrink:0;transition:background .2s}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.switch[aria-checked=true]{background:var(--acc)}
+.switch[aria-checked=true]::after{transform:translateX(22px)}
+.bottom{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:var(--bg);z-index:6}
+.bottom button{background:none;border:none;color:var(--mut);width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center}
+.bottom button:active{color:var(--txt)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.ov.show{display:flex}
+.modal{background:var(--card);width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.modal h2{margin:0 0 10px;font-size:18px}
+.stickyh{position:sticky;top:0;background:var(--card);z-index:2;margin:-16px -16px 0;padding:16px 16px 4px;box-shadow:0 -30px 0 var(--card)}
+.hbox{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:6px}
+.hbox h2{margin:0 0 4px}
+.hbox.hvolt{border:1px solid #C6F432}
+.cf{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:12;padding:16px}
+.cf.show{display:flex}
+.cf .box{background:var(--card);border-radius:16px;padding:18px;width:min(88vw,340px)}
+.nt{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:13;padding:16px}
+.nt.show{display:flex}
+.nt .box{background:var(--card);border-radius:16px;padding:18px;width:min(90vw,360px);font-size:14px;max-height:86vh;overflow-y:auto;scrollbar-width:none}
+.nt h3{margin:0 0 8px;font-size:16px}
+.warn2{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 10px;margin-top:10px;font-size:13px;line-height:1.4}
+.nt input,.nt select{width:110px;font:inherit;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px}
+.modal{max-height:76vh;max-height:76dvh;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.mini{padding:6px 14px;border-radius:999px;border:1px solid var(--acc);background:none;color:var(--accInk);font-weight:600;font-size:14px}
+.desc{font-size:15px;line-height:1.4;margin-bottom:12px;padding-left:9px}
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.ph{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:12px;color:var(--mut);min-height:72px}
+.ph b{display:block;text-align:center;color:var(--accInk);font-size:14px;margin-bottom:2px}
+body.busy header,body.busy main{filter:blur(3px);pointer-events:none}
+body.busy::after{content:'';position:fixed;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border:3px solid var(--line);border-top-color:var(--accInk);border-radius:50%;animation:spin .8s linear infinite;z-index:20}
+@keyframes spin{to{transform:rotate(360deg)}}
+button,.exo{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+main,header{-webkit-user-select:none;user-select:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.grid div{background:var(--bg);border-radius:10px;padding:8px;font-size:13px;color:var(--mut)}
+.grid b{display:block;font-size:17px;color:var(--txt)}
+textarea{width:100%;min-height:80px;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit;resize:vertical}
+.addbtn{display:inline-block;margin-top:12px;padding:12px 16px;border-radius:12px;border:1px solid var(--acc);background:var(--acc);color:var(--accTxt);font-weight:600}
+.rm{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;color:var(--mut)}
+.opt{font-family:Gilroy,Montserrat,sans-serif;font-weight:800;display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:15px;font-weight:600}
+.row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.back{width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1px solid var(--line);background:none;font-weight:600}
+.close{width:100%;margin-top:10px;padding:12px;border-radius:12px;border:none;background:var(--acc);color:var(--accTxt);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div class="wk">
+    <button class="nav" id="prev" aria-label="Semaine précédente">‹</button>
+    <div class="lbl" id="lbl"></div>
+    <button class="nav" id="next" aria-label="Semaine suivante">›</button>
+  </div>
+  <div class="days" id="days"></div>
+</header>
+<main id="main"></main>
+<nav class="bottom"><button id="hist" aria-label="Historique"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg></button><button id="gear" aria-label="Réglages"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button id="prNav" aria-label="Charges de référence"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></button></nav>
+<div class="cf" id="cf"><div class="box"><div id="cfT" style="font-weight:600;margin-bottom:6px"></div><div id="cfM" class="muted" style="font-size:14px;margin-bottom:14px"></div><div style="display:flex;gap:8px"><button class="hb" id="cfNo" style="flex:1">Annuler</button><button class="hb" id="cfYes" style="flex:1;background:var(--acc);color:var(--accTxt);border-color:var(--accInk)">Supprimer</button></div></div></div>
+<div class="nt" id="nt"><div class="box" id="ntb"></div></div>
+<div class="toast" id="toast"></div>
+<div class="ov" id="ov"><div class="modal" id="modal"></div></div>
+
+<script>
+/* ===== PROGRAMME : exemple à remplacer par tes séances réelles ===== */
+const TEMPLATE = [
+  {id:'a', name:'Force', day:1, exos:[
+    {id:'a1', name:'Back squat', sets:4, reps:5, kg:80},
+    {id:'a2', name:'Bench press', sets:4, reps:6, kg:60},
+    {id:'a3', name:'Soulevé de terre', sets:3, reps:4, kg:100},
+    {id:'a4', name:'Rowing barre', sets:4, reps:8, kg:50},
+    {id:'a5', name:'Nordic curl', sets:3, reps:5, kg:0},
+    {id:'a16', name:'Sledge pull', sets:3, reps:8, kg:50}
+  ]},
+  {id:'b', name:'Puissance', day:3, exos:[
+    {id:'b1', name:'Power clean', sets:5, reps:3, kg:60},
+    {id:'b6', name:'Front squat', sets:3, reps:4, kg:70},
+    {id:'b3', name:'Power snatch', sets:4, reps:2, kg:40},
+    {id:'b2', name:'Hang clean', sets:4, reps:3, kg:55},
+    {id:'b5', name:'Sauts pliométriques', sets:3, reps:5, kg:0}
+  ]},
+  {id:'c', name:'Pratique judo', day:5, exos:[
+    {id:'c1', name:'Uchi-komi', sets:5, reps:10, kg:0},
+    {id:'c2', name:'Randori', sets:1, reps:5, kg:0}
+  ]}
+];
+const CR=(id,name,day,km,pace)=>({id,name,day,exos:[{id:id+'_0',name,sets:1,reps:1,kg:0,km,pace}]});
+const COURSE={
+  '10k':[CR('r1','Easy run',1,7,'5:45-6:15 /km'),CR('r2','Threshold',3,6,'4:40-4:50 /km'),CR('r3','Long run',5,12,'6:00-6:30 /km')],
+  'semi':[CR('s1','Easy run',1,8,'5:45-6:15 /km'),CR('s2','Threshold',2,8,'4:50-5:05 /km'),CR('s3','Easy run',4,8,'5:45-6:15 /km'),CR('s4','Long run',6,18,'6:00-6:30 /km')],
+  'marathon':[CR('m1','Easy run',1,9,'5:45-6:15 /km'),CR('m2','Threshold',2,10,'5:00-5:10 /km'),CR('m3','Easy run',4,9,'5:45-6:15 /km'),CR('m4','Long run',6,26,'6:00-6:30 /km')]
+};
+const SS=(id,name,day,km,pace)=>({id,name,day,exos:[{id:id+'_0',name,sets:1,reps:1,kg:0,km,pace}]});
+const ST=(id,name,day,list)=>({id,name,day,exos:list.map((e,i)=>({id:id+'_'+i,name:e[0],sets:e[1],reps:e[2],kg:e[3]}))});
+const SPARTAN={
+  sprint:[SS('p1','Easy run',1,5,'5:30-6:00 /km'),ST('p2','Renforcement force',2,[['Tractions lestées',3,6,10],['Fentes marchées',3,12,10],['Gainage',3,1,0]]),SS('p3','Endurance : obstacles',3,0,'30 min · grip, grimpe, portage'),SS('p4','Long run',5,8,'6:00-6:30 /km'),SS('p6','Easy run',6,3,'5:30-6:00 /km'),ST('p5','Renforcement force : préhension',4,[['Dead hang',3,30,0],['Pinch plate',3,30,5],['Montée de corde',3,3,0]])],
+  super:[SS('p1','Easy run',1,7,'5:30-6:00 /km'),ST('p2','Renforcement force',2,[['Tractions lestées',3,6,10],['Fentes marchées',3,12,10],['Gainage',3,1,0]]),SS('p3','Endurance : obstacles',3,0,'40 min · grip, grimpe, portage'),SS('p4','Long run',5,12,'6:00-6:30 /km'),SS('p6','Easy run',6,5,'5:30-6:00 /km'),ST('p5','Renforcement force : préhension',4,[['Dead hang',3,30,0],['Pinch plate',3,30,5],['Montée de corde',3,3,0]])],
+  beast:[SS('p1','Easy run',1,8,'5:30-6:00 /km'),ST('p2','Renforcement force',2,[['Tractions lestées',3,6,10],['Fentes marchées',3,12,10],['Gainage',3,1,0]]),SS('p3','Endurance : obstacles',3,0,'45 min · grip, grimpe, portage'),SS('p4','Long run',5,21,'6:00-6:30 /km'),SS('p6','Easy run',6,6,'5:30-6:00 /km'),ST('p5','Renforcement force : préhension',4,[['Dead hang',3,30,0],['Pinch plate',3,30,5],['Montée de corde',3,3,0]])],
+  ultra:[SS('p1','Easy run',1,10,'5:45-6:15 /km'),ST('p2','Renforcement force',2,[['Tractions lestées',3,6,10],['Fentes marchées',3,12,10],['Gainage',3,1,0]]),SS('p3','Endurance : obstacles',3,0,'60 min · grip, grimpe, portage'),SS('p4','Long run',6,30,'6:15-6:45 /km'),SS('p6','Easy run',7,8,'5:45-6:15 /km'),ST('p5','Renforcement force : préhension',4,[['Dead hang',3,30,0],['Pinch plate',3,30,5],['Montée de corde',3,3,0]])]
+};
+const SP_SHORT={'Endurance : obstacles':['Agilité','endurance'],'Renforcement force':['Force','force'],'Renforcement force : préhension':['Préhension','force']};
+Object.values(SPARTAN).flat().forEach(x=>{ const m=SP_SHORT[x.name]; if(m){ x.name=m[0]; x.kind=m[1]; } });
+const RF={
+  maintien:[ST('f1','Renforcement force A',1,[['Back squat',3,8,60],['Bench press',3,8,40],['Rowing barre',3,10,40]]),SS('f2','Endurance : activité aérobie',2,0,'45 min · modérée'),ST('f3','Renforcement force B',3,[['Soulevé de terre roumain',3,10,50],['Développé militaire',3,10,20],['Gainage',3,1,0]]),SS('f4','Endurance : activité aérobie',4,0,'45 min · modérée'),SS('f5','Endurance : activité aérobie',6,0,'50 min · modérée')],
+  prise:[ST('f1','Renforcement force A',1,[['Back squat',4,6,70],['Bench press',4,6,50],['Rowing barre',4,6,50]]),SS('f2','Endurance : activité aérobie',2,0,'30 min · modérée'),ST('f3','Renforcement force B',3,[['Soulevé de terre',4,5,90],['Développé militaire',4,6,25],['Tractions lestées',3,6,10]]),SS('f4','Endurance : activité aérobie',6,0,'30 min · modérée')],
+  seche:[ST('f1','Renforcement force A',1,[['Back squat',3,10,50],['Bench press',3,10,35],['Rowing barre',3,12,35]]),SS('f2','Endurance : activité aérobie',2,0,'45 min · soutenue'),ST('f3','Renforcement force B',3,[['Soulevé de terre roumain',3,12,40],['Développé militaire',3,12,15],['Gainage',3,1,0]]),SS('f4','Endurance : activité aérobie',4,0,'45 min · modérée'),SS('f5','Endurance : activité aérobie',6,0,'45 min · modérée')]
+};
+const vx=(sid,v,list)=>list.map((e,i)=>({id:sid+'v'+v+'_'+i,name:e[0],sets:e[1],reps:e[2],kg:e[3]||0,km:e[4],pace:e[5]}));
+const VARS={
+  r1:[null,vx('r1',1,[['Easy run',1,1,0,7,'5:45-6:15 /km'],['Strides (accélérations)',6,20,0]]),vx('r1',2,[['Easy run',1,1,0,7,'5:45-6:15 /km'],['Montées de genoux',3,30,0]])],
+  r2:[null,vx('r2',1,[['Course en côte',6,1,0,0,'montées rapides']]),vx('r2',2,[['Threshold',1,1,0,6,'4:40-4:50 /km'],['Montées de genoux',3,30,0]])],
+  r3:[null,vx('r3',1,[['Long run',1,1,0,12,'6:00-6:30 /km'],['Pont fessier',3,12,0]]),vx('r3',2,[['Long run',1,1,0,12,'6:00-6:30 /km'],['Bird dog',3,10,0]])],
+  s1:[null,vx('s1',1,[['Easy run',1,1,0,8,'5:45-6:15 /km'],['Strides (accélérations)',6,20,0]]),vx('s1',2,[['Easy run',1,1,0,8,'5:45-6:15 /km'],['Montées de genoux',3,30,0]])],
+  s2:[null,vx('s2',1,[['Course en côte',6,1,0,0,'montées rapides']]),vx('s2',2,[['Threshold',1,1,0,8,'4:50-5:05 /km'],['Pas chassés',3,20,0]])],
+  s3:[null,vx('s3',1,[['Easy run',1,1,0,8,'5:45-6:15 /km'],['Strides (accélérations)',6,20,0]]),vx('s3',2,[['Easy run',1,1,0,8,'5:45-6:15 /km'],['Dead bug',3,10,0]])],
+  s4:[null,vx('s4',1,[['Long run',1,1,0,18,'6:00-6:30 /km'],['Pont fessier',3,12,0]]),vx('s4',2,[['Long run',1,1,0,18,'6:00-6:30 /km'],['Bird dog',3,10,0]])],
+  m1:[null,vx('m1',1,[['Easy run',1,1,0,9,'5:45-6:15 /km'],['Strides (accélérations)',6,20,0]]),vx('m1',2,[['Easy run',1,1,0,9,'5:45-6:15 /km'],['Montées de genoux',3,30,0]])],
+  m2:[null,vx('m2',1,[['Course en côte',6,1,0,0,'montées rapides']]),vx('m2',2,[['Threshold',1,1,0,10,'5:00-5:10 /km'],['Pas chassés',3,20,0]])],
+  m3:[null,vx('m3',1,[['Easy run',1,1,0,9,'5:45-6:15 /km'],['Strides (accélérations)',6,20,0]]),vx('m3',2,[['Easy run',1,1,0,9,'5:45-6:15 /km'],['Dead bug',3,10,0]])],
+  m4:[null,vx('m4',1,[['Long run',1,1,0,26,'6:00-6:30 /km'],['Pont fessier',3,12,0]]),vx('m4',2,[['Long run',1,1,0,26,'6:00-6:30 /km'],['Bird dog',3,10,0]])],
+  p2:[null,vx('p2',1,[['Montée de corde',3,3,0],['Farmer carry',3,40,24],['Dead bug',3,10,0]]),vx('p2',2,[['Dead hang',3,30,0],['Relevé de jambes suspendu',3,10,0],['Pompes',3,12,0]])],
+  p3:[null,vx('p3',1,[['Sandbag carry',3,30,20],['Bear crawl',3,20,0]]),vx('p3',2,[['Montée de corde',3,3,0],['Dead hang',3,30,0]])],
+  f1:[null,vx('f1',1,[['Goblet squat',3,10,20],['Pompes',3,12,0],['Tirage horizontal',3,10,40]]),vx('f1',2,[['Hip thrust',4,8,60],['Dips',3,8,0],['Face pull',3,15,15]])],
+  f2:[null,vx('f2',1,[['Endurance : vélo',1,1,0,0,'45 min · modérée']]),vx('f2',2,[['Endurance : marche rapide',1,1,0,0,'50 min · modérée']])],
+  f3:[null,vx('f3',1,[['Good morning',3,8,40],['Développé incliné haltères',3,10,20],['Dead bug',3,10,0]]),vx('f3',2,[['Soulevé de terre unilatéral',3,8,15],['Tirage horizontal',3,10,40],['Bird dog',3,10,0]])],
+  f4:[null,vx('f4',1,[['Endurance : vélo',1,1,0,0,'45 min · modérée']]),vx('f4',2,[['Endurance : natation',1,1,0,0,'30 min · modérée']])],
+  f5:[null,vx('f5',1,[['Endurance : marche rapide',1,1,0,0,'50 min · modérée']]),vx('f5',2,[['Endurance : vélo',1,1,0,0,'50 min · modérée']])]
+};
+function blockOf(w){ return ['hyp','force','pui','dec'][((wkOf(w)%4)+4)%4]; }
+function blockMod(e,b){
+  if(b==='hyp') return {...e,sets:e.sets+1,reps:Math.max(e.reps,10)};
+  if(b==='force') return {...e,reps:Math.min(e.reps,4)};
+  if(b==='pui') return {...e,sets:Math.min(e.sets,5),reps:Math.min(e.reps,3)};
+  return {...e,sets:Math.max(2,Math.round(e.sets*0.6))};
+}
+function phKm(w){ return [1.00,1.10,1.20,0.75][((wkOf(w)%4)+4)%4]; }
+function isJudoS(s){ return s.id==='c'||/^c_\d+$/.test(s.id); }
+function jDays(){const P=data.profile||{}; if(!(P.orient==='judo'||!P.orient)) return []; return Array.isArray(P.judoDays)?P.judoDays:[5];}
+function condSess(days){
+  const J=days||((data.profile&&Array.isArray(data.profile.judoDays))?data.profile.judoDays:[5]);
+  const d=[2,0,4,6,5,1,3].find(x=>!J.includes(x))??2;
+  return {id:'k',name:'Conditionnement',kind:'endurance',day:d,exos:[
+    {id:'k1',name:'Intervalles course',sets:6,reps:1,kg:0,km:0.4},
+    {id:'k2',name:'Circuit judo sans contact',sets:4,reps:1,kg:0}
+  ]};
+}
+function judoPlan(){
+  const P=data.profile||{}; const days=Array.isArray(P.judoDays)?P.judoDays.slice():[5];
+  const jud=days.map((d,i)=>({id:i?'c_'+i:'c',name:'Judo',day:d,exos:TEMPLATE[2].exos}));
+  const cond=P.jm==='comp'?[condSess(days)]:[];
+  return [TEMPLATE[0],TEMPLATE[1],...jud,...cond];
+}
+function TPL(){ const p=data.profile||{}; if(p.orient==='judo'||!p.orient) return judoPlan(); if(p.orient==='course') return COURSE[p.course||'10k']; if(p.orient==='spartan') return SPARTAN[p.spartan||'sprint']; if(p.orient==='rf') return RF[p.sub||'maintien']; return TEMPLATE; }
+const BANK={
+  a:[TEMPLATE[0].exos,
+    [{id:'a6',name:'Front squat',sets:4,reps:5,kg:70},{id:'a7',name:'Tractions lestées',sets:4,reps:6,kg:0},{id:'a18',name:'Montée de corde',sets:3,reps:3,kg:0},{id:'a8',name:'Développé militaire',sets:4,reps:6,kg:40},{id:'a9',name:'Soulevé de terre roumain',sets:3,reps:8,kg:70},{id:'a10',name:'Nordic curl',sets:3,reps:5,kg:0}],
+    [{id:'a11',name:'Soulevé trap bar',sets:4,reps:4,kg:100},{id:'a12',name:'Bench press',sets:4,reps:6,kg:60},{id:'a13',name:'Rowing barre',sets:4,reps:8,kg:50},{id:'a14',name:'Fentes bulgares',sets:3,reps:8,kg:20},{id:'a15',name:'Nordic curl',sets:3,reps:5,kg:0},{id:'a17',name:'Sledge pull',sets:3,reps:8,kg:50}]],
+  b:[TEMPLATE[1].exos,
+    [{id:'b7',name:'Power clean',sets:5,reps:2,kg:65},{id:'b8',name:'Snatch',sets:4,reps:2,kg:40},{id:'b9',name:'Push press',sets:4,reps:4,kg:50},{id:'b10',name:'Incline bench press',sets:3,reps:6,kg:45},{id:'b19',name:'Plate core rotation',sets:3,reps:10,kg:10},{id:'b11',name:'Sauts pliométriques',sets:3,reps:5,kg:0}],
+    [{id:'b12',name:'Hang clean',sets:5,reps:3,kg:55},{id:'b13',name:'Front squat',sets:3,reps:4,kg:70},{id:'b14',name:'Power snatch',sets:4,reps:2,kg:40},{id:'b15',name:'Box jumps',sets:4,reps:5,kg:0},{id:'b16',name:'Pompes lestées',sets:3,reps:8,kg:10},{id:'b20',name:'Plate core rotation',sets:3,reps:10,kg:10}]],
+  c:[TEMPLATE[2].exos,
+    [{id:'j2',name:'Uchi-komi',sets:4,reps:10,kg:0},{id:'j3',name:'Randori',sets:1,reps:6,kg:0},{id:'j4',name:'Gainage',sets:3,reps:1,kg:0}],
+    [{id:'j5',name:'Uchi-komi',sets:5,reps:8,kg:0},{id:'j6',name:'Randori',sets:2,reps:4,kg:0},{id:'j7',name:'Pinch plate',sets:3,reps:30,kg:5},{id:'j8',name:'Montée de corde',sets:3,reps:3,kg:0}]]
+};
+for(let i=1;i<7;i++) BANK['c_'+i]=BANK.c;
+const LIBRARY=[
+  {id:'n30',name:'Sledge pull',sets:4,reps:8,kg:50},
+  {id:'n31',name:'Plate core rotation',sets:3,reps:10,kg:10},
+  {id:'n1',name:'Pompes',sets:3,reps:12,kg:0},
+  {id:'n2',name:'Dips',sets:3,reps:8,kg:0},
+  {id:'n3',name:'Développé incliné haltères',sets:3,reps:10,kg:20},
+  {id:'n4',name:'Face pull',sets:3,reps:15,kg:15},
+  {id:'n5',name:'Tirage horizontal',sets:3,reps:10,kg:40},
+  {id:'n6',name:'Hip thrust',sets:4,reps:8,kg:60},
+  {id:'n7',name:'Goblet squat',sets:3,reps:10,kg:20},
+  {id:'n8',name:'Good morning',sets:3,reps:8,kg:40},
+  {id:'n9',name:'Soulevé de terre unilatéral',sets:3,reps:8,kg:15},
+  {id:'n10',name:'Pont fessier',sets:3,reps:12,kg:0},
+  {id:'n11',name:'Dead bug',sets:3,reps:10,kg:0},
+  {id:'n12',name:'Bird dog',sets:3,reps:10,kg:0},
+  {id:'n13',name:'Mountain climbers',sets:3,reps:30,kg:0},
+  {id:'n14',name:'Relevé de jambes suspendu',sets:3,reps:10,kg:0},
+  {id:'n15',name:'Suspension (dead hang)',sets:3,reps:30,kg:0},
+  {id:'n16',name:'Farmer carry',sets:3,reps:40,kg:24},
+  {id:'n17',name:'Sandbag carry',sets:3,reps:30,kg:20},
+  {id:'n18',name:'Bear crawl',sets:3,reps:20,kg:0},
+  {id:'n19',name:'Montée de corde',sets:3,reps:3,kg:0},
+  {id:'n20',name:'Strides (accélérations)',sets:6,reps:20,kg:0},
+  {id:'n21',name:'Kettlebell swing',sets:4,reps:15,kg:16},
+  {id:'n22',name:'Medicine ball slam',sets:3,reps:10,kg:6},
+  {id:'n23',name:'Sled push',sets:4,reps:20,kg:80},
+  {id:'n24',name:'Uchi-komi',sets:5,reps:10,kg:0},
+  {id:'n25',name:'Randori',sets:1,reps:5,kg:0},
+  {id:'k1',name:'Easy run',sets:1,reps:40,kg:0},
+  {id:'k2',name:'Threshold',sets:1,reps:30,kg:0},
+  {id:'k3',name:'Long run',sets:1,reps:65,kg:0},
+  {id:'k4',name:'Élévation mollets',sets:3,reps:15,kg:20},
+  {id:'k5',name:'Step-up',sets:3,reps:10,kg:15},
+  {id:'k6',name:'Fentes marchées',sets:3,reps:12,kg:10},
+  {id:'k7',name:'Montées de genoux',sets:3,reps:30,kg:0},
+  {id:'k8',name:'Pas chassés',sets:3,reps:20,kg:0},
+  {id:'k9',name:'Course en côte',sets:6,reps:1,kg:0},
+  {id:'l0', name:'Hang clean', sets:4, reps:3, kg:55},
+  {id:'l2', name:'Incline bench press', sets:3, reps:6, kg:45},
+  {id:'l3', name:'Biceps curl', sets:3, reps:10, kg:12},
+  {id:'l4', name:'Lat pull-down', sets:3, reps:10, kg:40},
+  {id:'l5', name:'Pinch plate', sets:3, reps:30, kg:5},
+  {id:'l6', name:'Kickback poulie', sets:3, reps:12, kg:10},
+  {id:'l1', name:'Snatch', sets:3, reps:2, kg:40},
+  {id:'l2', name:'Pompes lestées', sets:3, reps:8, kg:10}
+];
+/* ================================================================ */
+
+const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const DAYS_EN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function dayL(i){ return (data&&data.lang==='en'?DAYS_EN:DAYS)[i]; }
+function loc(){ return data&&data.lang==='en'?'en-GB':'fr-FR'; }
+const KEY='suivi-seances-v1';
+const pad=n=>String(n).padStart(2,'0');
+const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayIdx=(new Date().getDay()+6)%7;
+
+let data=load();
+let dbRef=null, saveT=null;
+let offset=0, selDay=todayIdx, lp=false, lpTimer=null, lastTap={};
+let sumOpen=false;
+let histSort='desc';
+let sm={mode:'add',day:0,target:null,revertible:false};
+
+const I18N={en:{'Réglages':'Settings','Mode sombre':'Dark mode','Personnel':'Personal','Langue':'Language','Objectif hebdomadaire':'Weekly goal','Valider la séance':'Validate session','Modifier':'Edit','Reporter':'Move','Supprimer':'Delete','Retirer':'Remove','Ajouter un exercice':'Add exercise','Annuler':'Cancel','Charges de référence (PR)':'Reference loads (PR)','Back squat':'Back squat','Front squat':'Front squat','Soulevé de terre':'Deadlift','Soulevé trap bar':'Trap bar deadlift','Soulevé de terre roumain':'Romanian deadlift','Fentes bulgares':'Bulgarian split squat','Nordic curl':'Nordic curl','Power clean':'Power clean','Hang clean':'Hang clean','Power snatch':'Power snatch','Snatch':'Snatch','Push press':'Push press','Sauts pliométriques':'Plyometric jumps','Box jumps':'Box jumps','Bench press':'Bench press','Incline bench press':'Incline bench press','Développé militaire':'Overhead press','Pompes lestées':'Weighted push-ups','Rowing barre':'Barbell row','Tractions lestées':'Weighted pull-ups','Lat pull-down':'Lat pull-down','Russian twist':'Russian twist','Gainage':'Plank','Gainage latéral':'Side plank','Fractionné course':'Running intervals','Fractionné vélo':'Bike intervals','Burpees':'Burpees','Thrusters':'Thrusters','Pinch plate':'Plate pinch','Kickback poulie':'Cable kickback','Biceps curl':'Biceps curl','Force':'Strength','Puissance':'Power','Endurance':'Endurance','Séance personnalisée':'Custom session','Course à pied':'Running','Entraînement judo':'Judo training','Séance crossfit':'Crossfit session','Jambes':'Legs','Core':'Core','Épaules':'Shoulders','Bras':'Arms','Haut du corps':'Upper body','Autres':'Other','explosivité':'explosiveness','élongation':'flexibility','endurance':'endurance','hypertrophie':'hypertrophy','force':'strength'}};
+function T(k){ return (typeof data!=='undefined'&&data.lang==='en'&&(I18N.en[k]||TR[k]))||k; }
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{weeks:{},notes:{}}}catch(e){return{weeks:{},notes:{}}}}
+function recordLedger(){
+  // Journal figé : chaque variation du nombre de séries est enregistrée avec les données de l'exercice au moment de la saisie
+  data.ledger=data.ledger||[]; data.seen=data.seen||{};
+  const today=fmt(new Date()); const P=data.profile||{};
+  Object.keys(data.weeks||{}).forEach(k=>{
+    const w=data.weeks[k]; if(!w||!w.sets) return;
+    const seen=data.seen[k]||(data.seen[k]={});
+    const ids=new Set([...Object.keys(w.sets),...Object.keys(seen)]);
+    let meta=null;
+    ids.forEach(id=>{
+      const cur=Math.max(0,w.sets[id]||0), prev=seen[id]||0;
+      if(cur===prev) return;
+      if(!meta){ meta={}; sessions(w).forEach(s=>s.exos.forEach(e=>{ meta[e.id]=e; })); }
+      const e=meta[id];
+      if(e){ data.ledger.push({d:today,wk:k,id,name:e.name,reps:e.reps||1,kg:e.kg||0,n:cur-prev,prog:P.orient||'judo',sub:P.sub||''}); }
+      seen[id]=cur;
+    });
+  });
+}
+function save(){
+  try{recordLedger()}catch(e){}
+  try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
+  queueRemote();
+  if(dbRef){
+    clearTimeout(saveT);
+    saveT=setTimeout(()=>{dbRef.set({json:JSON.stringify(data)}).catch(()=>toast('Sauvegarde distante échouée'))},400);
+  }
+}
+
+function wstart(off){const t=new Date();t.setHours(0,0,0,0);t.setDate(t.getDate()-((t.getDay()+6)%7)+off*7);return t}
+function W(){const k=fmt(wstart(offset));return data.weeks[k]||(data.weeks[k]={done:{},sets:{},key:k})}
+function wkOf(w){if(!w||!w.key) return 0; return Math.round((new Date(w.key+'T00:00:00')-new Date(2026,10,2))/(7*864e5))}
+function varIdx(w,id){return (w.variant&&w.variant[id]!==undefined)?w.variant[id]:((wkOf(w)%3)+3)%3}
+function relWeek(w){ const cur=fmt(wstart(0)); if(!w||!w.key) return 0; return w.key<cur?-1:(w.key>cur?1:0); }
+function freeDay(d){ const J=jDays(); if(!J.includes(d)) return d; for(let k=1;k<=6;k++){ const a=(d+k)%7, b=(d-k+7)%7; if(!J.includes(a)) return a; if(!J.includes(b)) return b; } return d; }
+function sessions(w,raw){const r=w.removed||{},ad=w.addons||{},mv=w.moved||{},dp=w.dropped||{},dd=w.doneDay||{};return [...TPL().filter(s=>!r[s.id]&&!dp[s.id]),...(w.extra||[])].map(s=>{const bank=BANK[s.id], vv=VARS[s.id], vi=varIdx(w,s.id); let base=(bank&&!s.log)?bank[vi]:(vv&&!s.log)?(vi===0?s.exos:vv[vi]):s.exos; if(!s.log&&!bank) base=base.map(e=>e.km?{...e,km:Math.round(e.km*phKm(w)*2)/2}:e); const PJ=data.profile||{}; if(!s.log&&bank&&PJ.orient==='judo'&&PJ.jm==='comp') base=base.map(e=>blockMod(e,blockOf(w))); const rawDay=dd[s.id]!==undefined?dd[s.id]:(mv[s.id]!==undefined?mv[s.id]:s.day); const keepDay=raw||s.log||isJudoS(s)||w.done[s.id]||dd[s.id]!==undefined; return {...s,day:keepDay?rawDay:freeDay(rawDay),exos:applyTrim(w,s.id,[...base,...(ad[s.id]||[])].map(e=>s.log?e:{...e,kg:kgOf(e)}))}})}
+const MIN_EXOS=2, MIN_SETS=2, MIN_SESSION_SETS=4;
+function applyTrim(w,id,ex){ const tr=(w.trim||{})[id], mg=(w.merged||{})[id]||[]; if(!tr) return ex.concat(mg); return ex.filter(e=>tr[e.id]!==undefined).map(e=>({...e,sets:tr[e.id]})).concat(mg); }
+function findExo(id){for(const s of sessions(W())){const e=s.exos.find(x=>x.id===id);if(e)return{s,e}}}
+function doneSets(s,w){return s.exos.reduce((a,e)=>a+Math.min(w.sets[e.id]||0,e.sets),0)}
+function planned(s){return s.exos.reduce((a,e)=>a+e.sets,0)}
+function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),1600)}
+
+function render(){
+  const w=W(), ws=wstart(offset), we=new Date(ws); we.setDate(ws.getDate()+6);
+  const o={day:'numeric',month:'short'};
+  document.getElementById('lbl').textContent=
+    offset===0?T('Cette semaine')+' · '+ws.toLocaleDateString(loc(),o)+' – '+we.toLocaleDateString(loc(),o)
+    :ws.toLocaleDateString(loc(),o)+' – '+we.toLocaleDateString(loc(),o);
+
+  // Calendrier : une ligne
+  document.getElementById('days').innerHTML=[0,1,2,3,4,5,6].map((i)=>{ const d=dayL(i);
+    const date=new Date(ws);date.setDate(ws.getDate()+i);
+    const sess=sessions(w).filter(s=>s.day===i&&(!jDays().includes(i)||isJudoS(s)));
+    const allDone=sess.length&&sess.every(s=>w.done[s.id]);
+    const cls=['day',sess.length?'has':'',allDone?'ok':'',i===selDay?'sel':'',(offset===0&&i===todayIdx)?'today':''].join(' ');
+    return `<button class="${cls}" data-day="${i}"><span>${d}</span><b>${date.getDate()}</b><i></i></button>`;
+  }).join('');
+
+  // Réévaluation de la semaine
+  const ALL=sessions(w).filter(s=>!s.log);
+  const isPlan=s=>!s.extra||!!s.replaces;
+  const totP=ALL.filter(isPlan).reduce((a,s)=>a+planned(s),0);
+  const extraP=totP-TPL().reduce((a,s)=>a+planned(s),0);
+  const totD=ALL.reduce((a,s)=>a+doneSets(s,w),0)+sessions(w).filter(s=>s.log).reduce((a,s)=>a+bonusOf(s),0);
+  const consumed=ALL.reduce((a,s)=>a+s.exos.reduce((b,e)=>b+exoLoad(s,e,Math.min(w.sets[e.id]||0,e.sets),s.exos.reduce((c,x)=>c+x.sets,0)),0),0);
+  const pct=budgetOf()?Math.round(consumed/budgetOf()*100):0;
+  const remS=ALL.filter(s=>!w.done[s.id]);
+  const remSets=totP-totD;
+  const remDays=offset===0?7-todayIdx:(offset>0?7:0);
+  const late=offset===0?remS.filter(s=>s.day<todayIdx):[];
+  let warn='';
+  if(offset===0&&late.length) warn+=`<div class="warn">En retard : ${late.map(s=>esc(s.name)).join(', ')}</div>`;
+  if(remS.length&&remDays>0&&remS.length>remDays) warn+=`<div class="warn">${remS.length} séances restantes pour ${remDays} jour(s) : prioriser ou alléger.</div>`;
+  if(remS.length&&remDays===0&&offset<0) warn+=`<div class="warn">Semaine passée : ${remS.length} séance(s) non validée(s).</div>`;
+  const hiddenA=sessions(w).filter(s=>s.day===selDay&&jDays().includes(selDay)&&!isJudoS(s));
+  const hiddenHtml=hiddenA.length?`<div class="warn">${hiddenA.map(s=>esc(T(s.name))).join(', ')} : prévu un jour de judo. Accepte la semaine proposée pour la replanifier.</div>`:'';
+  const rem=remS.length
+    ?`Reste : ${remS.map(s=>esc(s.name)).join(' · ')}`
+    :'Toutes les séances de la semaine sont validées ✓';
+  document.getElementById('main').innerHTML=`
+    <div class="sum">
+      <button class="sumh" data-sumtoggle="1"><span>${T('Objectif hebdomadaire')}</span><span><b>${pct}%</b> ${sumOpen?'▲':'▼'}</span></button>
+      <div class="bar"><div class="${pct>100?'over':''}" style="width:${Math.min(pct,100)}%"></div></div>
+      ${sumOpen?`<div class="sumd"><div class="muted" style="margin-bottom:6px"><b>${totD}/${totP}</b> séries validées${extraP?` · plan ${extraP>0?'+':''}${extraP} séries`:''}</div>`:''}
+      ${sumOpen?`${ALL.flatMap(s=>s.exos.map(e=>{const d=Math.min(w.sets[e.id]||0,e.sets); const dots=Array.from({length:e.sets},(_,i)=>`<i class="dot ${i<d?'on':''}"></i>`).join(''); return `<div class="row"><span>${esc(s.name)} · ${esc(e.name)}</span><span class="dots">${dots}</span></div>`})).join('')}`:''}
+      ${sumOpen?warn+'</div>':''}
+    </div>
+    ${hiddenHtml}${sessions(w).filter(s=>s.day===selDay&&(!jDays().includes(selDay)||isJudoS(s))).map(s=>{
+      const isDone=!!w.done[s.id], d=doneSets(s,w), p=planned(s), can=!isDone;
+      return `<section class="sess">
+        <div class="sh" ${s.extra?`data-times="${s.id}"`:''}><h3 style="display:inline-block;margin-left:6px;background:${colorOf(s)};color:#111;padding:2px 10px;border-radius:999px">${esc(T(s.name))}${s.times>1?' ×'+s.times:''}</h3><span class="hbtns">${!isDone&&!s.log?`<button class="hb" data-move="${s.id}">${T('Reporter')}</button>`:''}${can?`<button class="hb" data-mod="${s.id}">${T('Modifier')}</button>`:''}${can&&!s.extra&&!s.exos.some(e=>(w.sets[e.id]||0)>0)?`<button class="hb" data-del="${s.id}">${T('Supprimer')}</button>`:''}${s.extra?`<button class="hb" data-rm="${s.id}">${T('Retirer')}</button>`:''}</span></div>
+        ${s.exos.map(e=>{
+          const c=Math.min(w.sets[e.id]||0,e.sets), full=c>=e.sets;
+          return `<button class="exo ${full?'full':''}" data-e="${e.id}">
+            <span class="n">${esc(T(e.name))}</span>
+            <span class="m">${e.pace?(e.km?e.km+' km · ':'')+e.pace:e.reps+' rep'}${e.kg?' · '+e.kg+' kg':''}</span>
+            <span class="p" data-sw="${e.id}">${c}/${e.sets}</span></button>`;
+        }).join('')}
+        <div class="addwrap">${can&&!s.log?`<button class="addex" data-addex="${s.id}" aria-label="Ajouter un exercice">${T('Ajouter un exercice')}</button>`:''}</div><button class="sdone ${isDone?'on':''}" data-s="${s.id}">${isDone?'✓ '+T('Terminé'):T('Valider')}</button>
+      </section>`;
+    }).join('') || (jDays().includes(selDay)?'':`<div class="empty">Pas de séance ce jour.<br><button class="addbtn" data-add="1">+ Ajouter une séance</button></div>`)}
+  `;
+}
+
+/* Double-tap = valider / annuler un exercice ; appui long = détails */
+function tap(id){
+  const now=Date.now();
+  if(lastTap[id]&&now-lastTap[id]<400){
+    lastTap[id]=0;
+    openInfo(id);
+  } else {
+    lastTap[id]=now;
+    const el=document.querySelector(`.exo[data-e="${id}"]`);
+    if(el){el.classList.add('armed');setTimeout(()=>el.classList.remove('armed'),400)}
+  }
+}
+
+function adjustSeries(id,delta){
+  const f=findExo(id); if(!f) return;
+  const w=W(), c=Math.min(w.sets[id]||0,f.e.sets);
+  w.sets[id]=Math.max(0,Math.min(f.e.sets,c+delta));
+  save(); render();
+}
+const DESC={
+  'Dead hang':{txt:'Suspension libre à la barre, bras tendus, pour la préhension et la santé des épaules.',ph:['Prise pronation, bras tendus, épaules actives','Maintien le plus longtemps possible, sans balancement','Relâchement contrôlé']},
+  'Back squat':{txt:'Accroupissement barre sur les trapèzes : descendre hanches et genoux dos neutre, puis remonter en poussant dans le sol.',ph:['Debout, barre posée, pieds à largeur d’épaules','Descente contrôlée, genoux dans l’axe des pieds','Remontée, hanches et épaules montent ensemble']},
+  'Front squat':{txt:'Squat barre sur les épaules (position avant) : tronc plus vertical, davantage de cuisses et de gainage, moins de charge lombaire.',ph:['Barre sur les deltoïdes avant, coudes hauts','Descente contrôlée, tronc gainé','Remontée en gardant le buste droit']},
+  'Bench press':{txt:'Développé couché : pousser la barre au-dessus de la poitrine, allongé sur le banc.',ph:['Allongé, barre au-dessus des épaules','Barre descendue au bas de la poitrine, coudes à environ 45°','Poussée jusqu’à l’extension des bras']},
+  'Soulevé de terre':{txt:'Soulever la barre du sol dos neutre, en poussant avec les jambes et les hanches.',ph:['Barre au sol, dos plat, hanches basses','Barre le long des tibias, poussée des jambes','Extension complète, hanches et genoux verrouillés']},
+  'Rowing barre':{txt:'Tirer la barre vers le bas du thorax, buste incliné vers l’avant.',ph:['Buste incliné, barre tendue','Tirage vers le bas du ventre','Retour contrôlé, bras tendus']},
+  'Nordic curl':{txt:'Exercice excentrique pour les ischio-jambiers : descendre le buste en contrôlant avec les jambes, puis rattraper.',ph:['À genoux, chevilles bloquées, buste droit','Descente lente, résistance maximale','Retour au départ, mains en appui si besoin']},
+  'Power clean':{txt:'Soulever la barre du sol jusqu’aux épaules en une impulsion explosive, puis réceptionner en flexion.',ph:['Barre au sol, prise aux hanches','Extension explosive des jambes, hanches et épaules','Réception sous la barre, coudes vers l’avant']},
+  'Hang clean':{txt:'Clean commencé depuis la mi-cuisse, pour travailler la triple extension.',ph:['Barre à mi-cuisses, dos plat','Extension explosive des hanches et des jambes','Réception en flexion, barre aux épaules']},
+  'Power snatch':{txt:'Arracher la barre du sol jusqu’au-dessus de la tête en une impulsion, réception bras tendus.',ph:['Prise large, barre au sol','Triple extension, barre près du corps','Réception bras tendus au-dessus de la tête']},
+  'Snatch':{txt:'Arraché complet : la barre passe du sol au-dessus de la tête, réception en squat profond.',ph:['Prise large, barre au sol','Extension explosive, passage sous la barre','Réception en squat profond, bras tendus']},
+  'Incline bench press':{txt:'Développé sur banc incliné (environ 30°) : cible la partie haute de la poitrine et les épaules.',ph:['Banc incliné, barre au-dessus des épaules','Barre descendue vers le haut de la poitrine','Poussée verticale jusqu’à l’extension']},
+  'Sauts pliométriques':{txt:'Sauts explosifs avec réception amortie, pour la détente et la réactivité.',ph:['Genoux légèrement fléchis','Impulsion explosive vers le haut','Réception souple puis retour immédiat']},
+  'Fractionné course':{txt:'Alternance d’efforts courts et intenses et de récupérations, pour la capacité cardio-respiratoire.',ph:['Départ à allure soutenue','Effort intense de 30 secondes','Récupération active avant le suivant']},
+  'Russian twist':{txt:'Rotation du buste assis, pieds décollés, pour le gainage et la rotation du tronc.',ph:['Assis, buste incliné en arrière','Rotation du buste d’un côté','Rotation de l’autre côté, bassin stable']},
+  'Gainage':{txt:'Maintien d’une position gainée pour renforcer le tronc.',ph:['Appui sur avant-bras et pointes de pieds','Corps aligné de la tête aux talons','Maintien sans affaissement du bassin']},
+  'Burpees':{txt:'Enchaînement : descente au sol, appui, pieds ramenés, saut.',ph:['Debout, pieds largeur d’épaules','Mains au sol, pieds ramenés','Saut vertical, bras au-dessus de la tête']},
+  'Thrusters':{txt:'Squat avant suivi d’une poussée au-dessus de la tête, en un seul mouvement.',ph:['Barre aux épaules, squat','Remontée explosive','Barre poussée au-dessus de la tête']},
+  'Box jumps':{txt:'Sauts sur une caisse, avec réception stable sur la plateforme.',ph:['Face à la caisse, pieds largeur d’épaules','Impulsion et saut sur la caisse','Réception stable, hanches basses']},
+  'Push press':{txt:'Développé debout avec impulsion des jambes pour soulever une charge lourde au-dessus de la tête.',ph:['Barre aux épaules, pieds largeur de bassin','Demi-flexion rapide, impulsion des jambes','Extension des bras au-dessus de la tête']},
+  'Tractions lestées':{txt:'Traction à la barre avec charge additionnelle, pour la force du dos et des bras.',ph:['Suspension bras tendus, prise large','Tirage du menton au-dessus de la barre','Descente contrôlée jusqu’à l’extension']},
+  'Développé militaire':{txt:'Développé debout, barre devant les épaules, pour la force des épaules et du haut du corps.',ph:['Barre aux épaules, gainage actif','Poussée verticale de la barre','Extension complète au-dessus de la tête']},
+  'Soulevé de terre roumain':{txt:'Charnière de hanches jambes presque tendues, pour les ischio-jambiers et les lombaires.',ph:['Debout, barre dans les mains, genoux légèrement fléchis','Descente de la barre le long des cuisses, dos neutre','Remontée en contractant les fessiers']},
+  'Soulevé trap bar':{txt:'Soulevé de terre avec barre hexagonale, position plus verticale et moins de contrainte lombaire.',ph:['Dans la barre, prise neutre, dos plat','Poussée des jambes, barre près du corps','Extension complète, hanches verrouillées']},
+  'Fentes bulgares':{txt:'Fente arrière, pied postérieur surélevé, pour la stabilité et la force unilatérale.',ph:['Pied arrière posé sur un banc','Descente contrôlée, genou avant aligné','Remontée en poussant par le talon avant']},
+  'Fractionné vélo':{txt:'Efforts courts et intenses sur vélo, alternés avec des récupérations.',ph:['Échauffement progressif','Effort maximal de 40 secondes','Récupération active à faible résistance']},
+  'Gainage latéral':{txt:'Maintien sur le côté, pour renforcer les obliques et la stabilité du tronc.',ph:['Appui sur un avant-bras, corps aligné','Bassin levé, corps droit de la tête aux pieds','Maintien sans affaissement']},
+  'Push press':{txt:'Poussée de la barre au-dessus de la tête avec impulsion des jambes, pour la puissance du haut du corps.',ph:['Barre aux épaules, pieds largeur de hanches','Flexion légère des genoux puis impulsion explosive','Extension des bras, barre au-dessus de la tête']},
+  'Tractions lestées':{txt:'Traction à la barre avec charge additionnelle, pour la force du dos et des bras.',ph:['Suspendu, prise pronation, bras tendus','Traction jusqu’au menton, coudes vers le bas','Descente contrôlée jusqu’à l’extension']},
+  'Développé militaire':{txt:'Poussée verticale de la barre depuis les épaules, debout, pour les épaules et le tronc.',ph:['Barre aux épaules, tronc gainé','Poussée verticale, bassin stable','Extension complète au-dessus de la tête']},
+  'Soulevé de terre roumain':{txt:'Charnière de hanches jambes presque tendues : la barre descend le long des cuisses, pour les ischio-jambiers et les fessiers.',ph:['Debout, barre dans les mains, genoux légèrement fléchis','Hanches reculées, barre le long des cuisses, dos neutre','Remontée en contractant les fessiers']},
+  'Soulevé trap bar':{txt:'Soulevé de terre dans une barre hexagonale : position plus verticale, contrainte lombaire réduite.',ph:['Debout au centre de la barre, prise neutre','Descente des hanches, dos neutre, poussée des jambes','Extension complète, hanches et genoux verrouillés']},
+  'Fentes bulgares':{txt:'Fente arrière avec pied arrière posé sur un banc, pour la force unilatérale des cuisses et des fessiers.',ph:['Pied arrière posé sur le banc, buste droit','Descente contrôlée, genou avant dans l’axe du pied','Remontée par le pied avant']},
+  'Fractionné vélo':{txt:'Alternance d’efforts intenses et de récupérations sur vélo, pour la capacité aérobie et la puissance.',ph:['Échauffement progressif, cadence stable','Effort intense de 40 secondes, résistance élevée','Récupération active avant l’effort suivant']},
+  'Gainage latéral':{txt:'Maintien de la planche sur le côté, pour les obliques et la stabilité du tronc.',ph:['Appui sur un avant-bras, corps aligné','Hanches élevées, tronc gainé','Maintien sans affaissement, puis changement de côté']},
+  'Lat pull-down':{txt:'Tirage vertical à la poulie haute, barre vers le haut de la poitrine, pour le dos et les grands dorsaux.',ph:['Assis, cuisses calées, barre saisie large','Tirage de la barre vers le haut de la poitrine, coudes vers le bas','Remontée contrôlée, bras tendus']},
+  'Pinch plate':{txt:'Maintien d’une plaque serrée entre les doigts et le pouce, pour la force de préhension et l’endurance des avant-bras.',ph:['Plaque saisie à deux mains, pincée à la verticale','Maintien du poids, épaules basses','Relâchement contrôlé, sans lâcher la plaque']},
+  'Kickback poulie':{txt:'Extension de hanche à la poulie, jambe tendue, cheville attachée, pour les ischio-jambiers et les fessiers.',ph:['Cheville attachée, face à la poulie, tronc stable','Extension de la jambe vers l’arrière, bassin immobile','Retour contrôlé vers l’avant']},
+  'Biceps curl':{txt:'Flexion du coude avec charge, pour le travail des biceps.',ph:['Bras le long du corps, paumes vers l’avant','Flexion du coude, coude fixe','Descente contrôlée, bras tendus']},
+  'Easy run':{txt:'Footing court à allure facile, conversation possible. Il construit la base du volume hebdomadaire et favorise la récupération.',ph:['Départ progressif, 5 minutes de marche ou de trot','Allure stable, respiration maîtrisée, foulée relâchée','Retour au calme avec étirements légers']},
+  'Threshold':{txt:'Allure de seuil : effort soutenu, juste sous le seuil lactique, phrases courtes possibles.',ph:['Échauffement de 10 minutes à allure facile','Bloc soutenu à allure de seuil, sans accélérer','Retour au calme de 10 minutes']},
+  'Intervalles course':{txt:'Alternance d’efforts courts et soutenus avec récupération incomplète, pour la puissance aérobie et la capacité à répéter les enchaînements.',ph:['Échauffement progressif','Efforts courts à allure soutenue, récupération active','Retour au calme'],cat:'endurance'},
+  'Circuit judo sans contact':{txt:'Déplacements, pas de combat et exercices de gainage enchaînés sans contact, pour le cardio spécifique au judo et la récupération active.',ph:['Déplacements de base','Enchaînements à intensité modérée','Récupération et respiration'],cat:'endurance'},
+  'Long run':{txt:'Sortie longue à allure facile, pour l’endurance et l’économie de course. Durée croissante au fil des semaines.',ph:['Départ très progressif, premiers kilomètres lents','Allure constante, hydratation et alimentation si la sortie dépasse 60 min','Fin de sortie contrôlée, sans accélération']},
+  'Élévation mollets':{txt:'Montée sur la pointe des pieds, pour les mollets et la réaction à l’impact.',ph:['Pieds largeur de hanches, avant-pied sur une marche','Montée complète sur la pointe','Descente lente, talon sous la marche']},
+  'Step-up':{txt:'Montée sur un banc avec une jambe, pour la force unilatérale et la stabilité.',ph:['Pied posé entièrement sur le banc','Poussée par la jambe d’appui jusqu’à l’extension','Descente contrôlée']},
+  'Fentes marchées':{txt:'Fentes enchaînées en avançant, pour la force des cuisses et l’équilibre.',ph:['Pas long, buste droit','Genou avant dans l’axe du pied','Passage du pied arrière en avant']},
+  'Montées de genoux':{txt:'Course sur place genoux hauts, pour la fréquence de foulée et la coordination.',ph:['Buste droit, appui sur l’avant du pied','Genou remonté à hauteur de hanche','Enchaînement rapide, bras actifs']},
+  'Pas chassés':{txt:'Déplacement latéral en chassé, pour la mobilité et la coordination.',ph:['Position basse, pieds écartés','Pas chassé franc vers le côté','Retour sur l’autre côté, sans croiser les pieds']},
+  'Course en côte':{txt:'Montées rapides en côte pour la puissance et la force des jambes. Efforts courts, récupération complète.',ph:['Départ en bas de côte, buste légèrement incliné','Montée rapide en gardant la cadence et une foulée courte','Descente lente, retour au bas de la côte pour récupérer']},
+  'Pompes':{txt:'Pompe au poids de corps : poussée complète du haut du corps.',ph:['Mains sous les épaules, corps aligné', 'Descente contrôlée, coudes à environ 45°', 'Poussée jusqu’à l’extension']},
+  'Dips':{txt:'Poussée verticale aux barres parallèles, pour les triceps et la poitrine.',ph:['Bras tendus, épaules basses', 'Descente contrôlée, coudes le long du corps', 'Remontée jusqu’à l’extension']},
+  'Développé incliné haltères':{txt:'Développé sur banc incliné avec haltères, pour la partie haute de la poitrine.',ph:['Banc incliné, haltères au-dessus des épaules', 'Descente lente, coudes sous les haltères', 'Poussée jusqu’à l’extension']},
+  'Face pull':{txt:'Tirage vers le visage à la poulie haute, pour les épaules arrière et le dos.',ph:['Corde à hauteur de visage', 'Tirage vers le visage, coudes hauts', 'Retour contrôlé']},
+  'Tirage horizontal':{txt:'Tirage horizontal à la poulie basse, pour le dos.',ph:['Assis, pieds calés, buste droit', 'Tirage vers le ventre, omoplates serrées', 'Retour contrôlé, bras tendus']},
+  'Hip thrust':{txt:'Poussée de hanches au banc, pour les fessiers et la puissance des hanches.',ph:['Dos sur le banc, barre sur le bassin', 'Poussée des hanches jusqu’à l’alignement', 'Contraction des fessiers, puis descente']},
+  'Goblet squat':{txt:'Squat tenu devant la poitrine, pour apprendre la position et renforcer les cuisses.',ph:['Haltère tenu contre la poitrine, pieds largeur d’épaules', 'Descente profonde, dos droit', 'Remontée en poussant dans le sol']},
+  'Good morning':{txt:'Charnière de hanches barre sur les épaules, pour la chaîne postérieure.',ph:['Barre sur les trapèzes, genoux légèrement fléchis', 'Buste incliné en gardant le dos neutre', 'Remontée en contractant les fessiers']},
+  'Soulevé de terre unilatéral':{txt:'Charnière sur une jambe, pour l’équilibre et les ischio-jambiers.',ph:['Debout sur une jambe, haltère dans la main opposée', 'Buste et jambe libre se déplacent ensemble', 'Retour à la verticale, hanches alignées']},
+  'Pont fessier':{txt:'Élévation du bassin au sol, pour les fessiers et la stabilité.',ph:['Allongé, genoux fléchis, pieds à plat', 'Élévation du bassin jusqu’à l’alignement', 'Descente lente']},
+  'Dead bug':{txt:'Gainage allongé, bras et jambe opposés en mouvement, pour la stabilité du tronc.',ph:['Dos plaqué au sol, bras et genoux à 90°', 'Extension opposée bras et jambe, dos stable', 'Retour au départ, sans cambrer']},
+  'Bird dog':{txt:'Quatre appuis, extension opposée bras et jambe, pour le gainage dynamique.',ph:['À quatre pattes, dos neutre', 'Extension du bras et de la jambe opposés', 'Retour contrôlé']},
+  'Mountain climbers':{txt:'Position de planche avec genoux ramenés alternativement, pour le cardio et le gainage.',ph:['Planche, mains sous les épaules', 'Genoux ramenés alternativement vers la poitrine', 'Rythme régulier, bassin stable']},
+  'Relevé de jambes suspendu':{txt:'Relevé des jambes suspendu à la barre, pour les abdominaux et la préhension.',ph:['Suspendu à la barre, bras tendus', 'Relevé des jambes ou des genoux, bassin stable', 'Descente contrôlée']},
+  'Suspension (dead hang)':{txt:'Maintien suspendu à la barre, pour la préhension et les épaules.',ph:['Prise pronation, bras tendus, épaules actives', 'Maintien du poids sans balancement', 'Relâchement contrôlé']},
+  'Farmer carry':{txt:'Marche avec une charge dans chaque main, pour la préhension, le tronc et la posture.',ph:['Haltères ou kettlebells dans chaque main', 'Marche droite, buste gainé, pas réguliers', 'Dépose contrôlée']},
+  'Sandbag carry':{txt:'Portage d’un sac de sable sur l’épaule ou dans les bras, pour le travail d’obstacles.',ph:['Sac posé sur l’épaule ou dans les bras', 'Marche régulière, tronc gainé', 'Dépose contrôlée']},
+  'Bear crawl':{txt:'Déplacement à quatre pattes, genoux décollés, pour la mobilité et le gainage.',ph:['Mains sous les épaules, genoux décollés de 2 cm', 'Déplacement en avant, dos plat', 'Pas coordonnés, hanches basses']},
+  'Montée de corde':{txt:'Montée de la corde avec les bras et les jambes, pour les obstacles Spartan et la préhension.',ph:['Corde saisie, jambes enroulées ou en appui','Traction des bras et montée par les jambes','Descente contrôlée, mains serrées']},
+  'Strides (accélérations)':{txt:'Accélérations courtes de 20 secondes, pour la cadence et l’économie de course.',ph:['Échauffement et foulée relâchée', 'Accélération progressive sur 20 secondes', 'Récupération complète entre chaque strides']},
+  'Kettlebell swing':{txt:'Balancement de kettlebell par la hanche, pour la puissance des hanches et le cardio.',ph:['Pieds écartés, kettlebell entre les jambes', 'Extension des hanches qui projette la kettlebell', 'Retour contrôlé, sans forcer avec les bras']},
+  'Medicine ball slam':{txt:'Lancer du ballon médicinal au sol, pour la puissance du tronc et des bras.',ph:['Ballon au-dessus de la tête, corps tendu', 'Impact du ballon au sol, hanches et bras', 'Récupération du ballon, enchaînement']},
+  'Sled push':{txt:'Poussée d’un traîneau chargé, pour la puissance des jambes et le cardio.',ph:['Mains sur le traîneau, buste incliné', 'Poussée continue des jambes', 'Pas courts et réguliers']},
+  'Uchi-komi':{txt:'Répétition sans projection d’un mouvement de judo, pour la précision et la mémoire motrice.',ph:['Prise et placement du mouvement', 'Entrée et déséquilibre répétés sans projection', 'Retour en garde après chaque répétition']},
+  'Randori':{txt:'Combat libre contrôlé, pour appliquer les techniques en situation.',ph:['Garde établie avec le partenaire', 'Combat contrôlé, intensité progressive', 'Pause et retour en garde entre les rounds']},
+  'Sledge pull':{txt:'Traction d’un traîneau chargé en reculant, pour la traction de tout le corps et la préhension.',ph:['Prise sur la corde, bras tendus, pieds en appui','Traction en reculant, corps gainé','Retour contrôlé vers le traîneau']},
+  'Plate core rotation':{txt:'Rotation du tronc avec un disque tenu à bout de bras, pour transférer la puissance des hanches aux bras.',ph:['Disque tenu devant la poitrine, pieds écartés','Rotation du tronc et des hanches vers un côté','Retour au centre, bassin stable']},
+  'Pompes lestées':{txt:'Pompes avec charge sur le dos, pour la force du haut du corps.',ph:['Bras tendus, corps aligné, charge sur le dos','Descente contrôlée, coudes à environ 45°','Poussée jusqu’à l’extension']}
+};
+const DESC_EN={"Dead hang": {"txt": "Hang freely from the bar with arms extended, for grip strength and shoulder health.", "ph": ["Pronated grip, arms extended, shoulders engaged", "Hold as long as possible, without swinging", "Controlled release"]}, "Back squat": {"txt": "Barbell on the traps squat: lower hips and knees with a neutral back, then drive up through the floor.", "ph": ["Standing, bar set, feet shoulder-width apart", "Controlled descent, knees tracking over the toes", "Ascent, hips and shoulders rise together"]}, "Front squat": {"txt": "Barbell squat on the front of the shoulders: more upright torso, more quads and core work, less lower-back load.", "ph": ["Bar on the front deltoids, elbows high", "Controlled descent, braced trunk", "Ascent keeping the chest up"]}, "Bench press": {"txt": "Flat bench press: press the bar up from the chest, lying on the bench.", "ph": ["Lying down, bar above the shoulders", "Bar lowered to the lower chest, elbows at about 45°", "Press up to full arm extension"]}, "Soulevé de terre": {"txt": "Lift the bar from the floor with a neutral back, driving with the legs and hips.", "ph": ["Bar on the floor, flat back, hips low", "Bar close to the shins, leg drive", "Full extension, hips and knees locked out"]}, "Rowing barre": {"txt": "Pull the bar down to the lower chest, torso leaning forward.", "ph": ["Torso leaning forward, bar hanging straight", "Pull towards the lower abdomen", "Controlled return, arms extended"]}, "Nordic curl": {"txt": "Eccentric hamstring exercise: lower the torso under control with the legs, then catch yourself.", "ph": ["Kneeling, ankles anchored, torso straight", "Slow descent, maximum resistance", "Return to start, hands on the floor if needed"]}, "Power clean": {"txt": "Pull the bar from the floor to the shoulders in one explosive movement, then catch it in a squat.", "ph": ["Bar on the floor, grip at the hips", "Explosive extension of the legs, hips and shoulders", "Catch under the bar, elbows forward"]}, "Hang clean": {"txt": "Clean started from mid-thigh, to train triple extension.", "ph": ["Bar at mid-thigh, flat back", "Explosive extension of the hips and legs", "Catch in a squat, bar on the shoulders"]}, "Power snatch": {"txt": "Snatch the bar from the floor to overhead in one movement, catching with arms extended.", "ph": ["Wide grip, bar on the floor", "Triple extension, bar close to the body", "Catch with arms extended overhead"]}, "Snatch": {"txt": "Full snatch: the bar goes from the floor to overhead, caught in a deep squat.", "ph": ["Wide grip, bar on the floor", "Explosive extension, moving under the bar", "Catch in a deep squat, arms extended"]}, "Incline bench press": {"txt": "Incline bench press (about 30°): targets the upper chest and shoulders.", "ph": ["Incline bench, bar above the shoulders", "Bar lowered to the upper chest", "Vertical press to full extension"]}, "Sauts pliométriques": {"txt": "Explosive jumps with soft landings, for power and reactivity.", "ph": ["Knees slightly bent", "Explosive upward drive", "Soft landing, then immediate rebound"]}, "Fractionné course": {"txt": "Alternating short hard efforts with recovery periods, for cardio-respiratory capacity.", "ph": ["Start at a hard pace", "30-second intense effort", "Active recovery before the next one"]}, "Russian twist": {"txt": "Seated trunk rotation with feet off the floor, for core strength and trunk rotation.", "ph": ["Seated, torso leaning back", "Rotate the torso to one side", "Rotate to the other side, pelvis stable"]}, "Gainage": {"txt": "Hold a braced position to strengthen the trunk.", "ph": ["Forearms and toes on the floor", "Body aligned from head to heels", "Hold without the hips sagging"]}, "Burpees": {"txt": "Sequence: drop to the floor, push-up position, feet back in, jump.", "ph": ["Standing, feet shoulder-width apart", "Hands on the floor, feet back in", "Vertical jump, arms overhead"]}, "Thrusters": {"txt": "Front squat followed by a press overhead, in one continuous movement.", "ph": ["Bar on the shoulders, squat", "Explosive drive up", "Bar pressed overhead"]}, "Box jumps": {"txt": "Jumps onto a box, landing stably on the platform.", "ph": ["Facing the box, feet shoulder-width apart", "Drive and jump onto the box", "Stable landing, hips low"]}, "Push press": {"txt": "Press the bar overhead with a leg drive, to build upper-body power and lift heavy loads overhead.", "ph": ["Bar on the shoulders, feet hip-width apart", "Slight knee bend, then explosive drive", "Arms extended, bar overhead"]}, "Tractions lestées": {"txt": "Pull-up on the bar with added load, for back and arm strength.", "ph": ["Hanging, pronated grip, arms extended", "Pull up to the chin, elbows down", "Controlled descent to full extension"]}, "Développé militaire": {"txt": "Standing vertical press from the shoulders, for shoulder and trunk strength.", "ph": ["Bar on the shoulders, core braced", "Vertical press, stable pelvis", "Full extension overhead"]}, "Soulevé de terre roumain": {"txt": "Hip hinge with legs nearly straight: the bar slides down the thighs, for hamstrings and glutes.", "ph": ["Standing, bar in hands, knees slightly bent", "Hips back, bar along the thighs, neutral back", "Stand up by squeezing the glutes"]}, "Soulevé trap bar": {"txt": "Deadlift in a hex bar: more upright position, less lower-back strain.", "ph": ["Standing in the centre of the bar, neutral grip", "Lower the hips, neutral back, drive through the legs", "Full extension, hips and knees locked out"]}, "Fentes bulgares": {"txt": "Rear-foot-elevated split squat, for single-leg leg and glute strength.", "ph": ["Rear foot on the bench, torso upright", "Controlled descent, front knee tracking over the foot", "Drive up through the front foot"]}, "Fractionné vélo": {"txt": "Alternating hard efforts and recovery on the bike, for aerobic capacity and power.", "ph": ["Progressive warm-up, steady cadence", "40-second hard effort, high resistance", "Active recovery before the next effort"]}, "Gainage latéral": {"txt": "Side plank hold, for the obliques and trunk stability.", "ph": ["Forearm on the floor, body aligned", "Hips raised, trunk braced", "Hold without sagging, then switch sides"]}, "Lat pull-down": {"txt": "Vertical pull on the high cable, bar to the upper chest, for the back and lats.", "ph": ["Seated, thighs locked in, wide grip", "Pull the bar to the upper chest, elbows down", "Controlled return, arms extended"]}, "Pinch plate": {"txt": "Hold a plate pinched between the fingers and thumb, for grip strength and forearm endurance.", "ph": ["Plate held with both hands, pinched upright", "Hold the weight, shoulders down", "Controlled release, without dropping the plate"]}, "Kickback poulie": {"txt": "Hip extension on the cable, leg straight, ankle strapped, for hamstrings and glutes.", "ph": ["Ankle strapped, facing the cable, trunk stable", "Leg extended backwards, pelvis still", "Controlled return forward"]}, "Biceps curl": {"txt": "Elbow flexion with load, for the biceps.", "ph": ["Arms by the sides, palms facing forward", "Bend the elbow, elbow fixed", "Controlled descent, arms extended"]}, "Easy run": {"txt": "Short run at an easy pace, conversation possible. It builds the weekly volume base and aids recovery.", "ph": ["Gradual start, 5 minutes walking or jogging", "Steady pace, controlled breathing, relaxed stride", "Cool-down with light stretching"]}, "Threshold": {"txt": "Threshold pace: sustained effort, just below lactate threshold, short sentences possible.", "ph": ["10-minute warm-up at an easy pace", "Sustained block at threshold pace, without speeding up", "10-minute cool-down"]}, "Intervalles course": {"txt": "Short hard efforts alternated with incomplete recovery, for aerobic power and the ability to repeat efforts.", "ph": ["Progressive warm-up", "Short efforts at a hard pace, active recovery", "Cool-down"]}, "Circuit judo sans contact": {"txt": "Footwork, no fighting and core exercises chained without contact, for judo-specific cardio and active recovery.", "ph": ["Basic footwork", "Chained movements at moderate intensity", "Recovery and breathing"]}, "Long run": {"txt": "Long run at an easy pace, for endurance and running economy. Duration increases over the weeks.", "ph": ["Very gradual start, slow first kilometres", "Steady pace, hydrate and eat if the run exceeds 60 min", "Controlled finish, no acceleration"]}, "Élévation mollets": {"txt": "Rise onto the toes, for the calves and impact absorption.", "ph": ["Feet hip-width apart, forefoot on a step", "Full rise onto the toes", "Slow descent, heel below the step"]}, "Step-up": {"txt": "Step up onto a bench with one leg, for single-leg strength and stability.", "ph": ["Whole foot on the bench", "Drive through the support leg to full extension", "Controlled descent"]}, "Fentes marchées": {"txt": "Walking lunges, for thigh strength and balance.", "ph": ["Long step, torso upright", "Front knee tracking over the foot", "Rear foot brought forward"]}, "Montées de genoux": {"txt": "High-knee running on the spot, for stride rate and coordination.", "ph": ["Upright torso, weight on the balls of the feet", "Knee lifted to hip height", "Fast rhythm, active arms"]}, "Pas chassés": {"txt": "Lateral chassé steps, for mobility and coordination.", "ph": ["Low position, feet apart", "Crisp chassé step to the side", "Return to the other side, feet not crossing"]}, "Course en côte": {"txt": "Fast hill sprints for leg power and strength. Short efforts, full recovery.", "ph": ["Start at the bottom of the hill, torso slightly leaning forward", "Climb quickly, keeping cadence and a short stride", "Slow descent, walk back down to recover"]}, "Pompes": {"txt": "Bodyweight push-up: full upper-body press.", "ph": ["Hands under the shoulders, body aligned", "Controlled descent, elbows at about 45°", "Press to full extension"]}, "Dips": {"txt": "Vertical press on parallel bars, for the triceps and chest.", "ph": ["Arms extended, shoulders down", "Controlled descent, elbows by the body", "Rise to full extension"]}, "Développé incliné haltères": {"txt": "Incline dumbbell press, for the upper chest.", "ph": ["Incline bench, dumbbells above the shoulders", "Slow descent, elbows under the dumbbells", "Press to full extension"]}, "Face pull": {"txt": "Pull towards the face on the high cable, for rear shoulders and upper back.", "ph": ["Rope at face height", "Pull towards the face, high elbows", "Controlled return"]}, "Tirage horizontal": {"txt": "Horizontal row on the low cable, for the back.", "ph": ["Seated, feet braced, torso upright", "Pull towards the stomach, shoulder blades squeezed", "Controlled return, arms extended"]}, "Hip thrust": {"txt": "Hip thrust on a bench, for the glutes and hip power.", "ph": ["Back on the bench, bar on the hips", "Drive the hips until aligned", "Squeeze the glutes, then lower"]}, "Goblet squat": {"txt": "Squat holding a weight at the chest, to learn the position and strengthen the legs.", "ph": ["Weight held against the chest, feet shoulder-width apart", "Deep descent, back straight", "Drive up through the floor"]}, "Good morning": {"txt": "Hip hinge with the bar on the shoulders, for the posterior chain.", "ph": ["Bar on the traps, knees slightly bent", "Torso leaning forward, neutral back", "Stand up by squeezing the glutes"]}, "Soulevé de terre unilatéral": {"txt": "Single-leg hinge, for balance and hamstrings.", "ph": ["Standing on one leg, dumbbell in the opposite hand", "Torso and free leg move together", "Return to upright, hips aligned"]}, "Pont fessier": {"txt": "Lift the hips from the floor, for the glutes and stability.", "ph": ["Lying down, knees bent, feet flat", "Raise the hips until aligned", "Slow descent"]}, "Dead bug": {"txt": "Lying core exercise with opposite arm and leg moving, for trunk stability.", "ph": ["Back pressed to the floor, arms and knees at 90°", "Opposite arm and leg extend, back stable", "Return to start, without arching"]}, "Bird dog": {"txt": "Quadruped opposite arm and leg extension, for dynamic core work.", "ph": ["On all fours, neutral back", "Extend the opposite arm and leg", "Controlled return"]}, "Mountain climbers": {"txt": "Plank position with knees driven in alternately, for cardio and core.", "ph": ["Plank, hands under the shoulders", "Knees driven alternately towards the chest", "Steady rhythm, stable pelvis"]}, "Relevé de jambes suspendu": {"txt": "Hanging leg raise from the bar, for abs and grip.", "ph": ["Hanging from the bar, arms extended", "Raise the legs or knees, stable pelvis", "Controlled descent"]}, "Suspension (dead hang)": {"txt": "Hang from the bar, for grip and shoulders.", "ph": ["Pronated grip, arms extended, shoulders engaged", "Hold the body weight without swinging", "Controlled release"]}, "Farmer carry": {"txt": "Walk with a weight in each hand, for grip, trunk and posture.", "ph": ["Dumbbells or kettlebells in each hand", "Walk tall, braced trunk, steady steps", "Controlled set-down"]}, "Sandbag carry": {"txt": "Carry a sandbag on the shoulder or in the arms, for obstacle work.", "ph": ["Bag on the shoulder or in the arms", "Steady walk, braced trunk", "Controlled set-down"]}, "Bear crawl": {"txt": "Crawl on all fours with knees off the floor, for mobility and core.", "ph": ["Hands under the shoulders, knees 2 cm off the floor", "Move forward, flat back", "Coordinated steps, low hips"]}, "Montée de corde": {"txt": "Climb the rope with arms and legs, for Spartan obstacles and grip.", "ph": ["Rope gripped, legs wrapped or pressing", "Pull with the arms and climb with the legs", "Controlled descent, tight grip"]}, "Strides (accélérations)": {"txt": "Short 20-second accelerations, for cadence and running economy.", "ph": ["Warm-up and relaxed stride", "Progressive acceleration over 20 seconds", "Full recovery between strides"]}, "Kettlebell swing": {"txt": "Kettlebell swing driven by the hips, for hip power and cardio.", "ph": ["Feet apart, kettlebell between the legs", "Hip extension sends the kettlebell forward", "Controlled return, arms not doing the work"]}, "Medicine ball slam": {"txt": "Slam a medicine ball to the floor, for trunk and arm power.", "ph": ["Ball overhead, body extended", "Ball impact on the floor, hips and arms", "Pick up the ball, next rep"]}, "Sled push": {"txt": "Push a loaded sled, for leg power and cardio.", "ph": ["Hands on the sled, torso leaning forward", "Continuous leg drive", "Short, steady steps"]}, "Uchi-komi": {"txt": "Repetition of a judo movement without the throw, for precision and motor memory.", "ph": ["Grip and positioning of the movement", "Repeated entry and off-balancing, no throw", "Return to guard after each repetition"]}, "Randori": {"txt": "Controlled free sparring, to apply techniques in context.", "ph": ["Guard established with the partner", "Controlled fight, progressive intensity", "Pause and return to guard between rounds"]}, "Sledge pull": {"txt": "Pull a loaded sled while walking backwards, for full-body pulling and grip.", "ph": ["Grip on the rope, arms extended, feet braced", "Pull while walking backwards, braced body", "Controlled return towards the sled"]}, "Plate core rotation": {"txt": "Trunk rotation holding a plate at arm's length, to transfer hip power to the arms.", "ph": ["Plate held in front of the chest, feet apart", "Rotate the trunk and hips to one side", "Return to centre, stable pelvis"]}, "Pompes lestées": {"txt": "Push-ups with a load on the back, for upper-body strength.", "ph": ["Arms extended, body aligned, load on the back", "Controlled descent, elbows at about 45°", "Press to full extension"]}};
+const UI_EN={"Profil": "Profile", "Sexe": "Sex", "Homme": "Male", "Femme": "Female", "Âge": "Age", "Taille (cm)": "Height (cm)", "Poids (kg)": "Weight (kg)", "Objectif": "Goal", "Plan d’entraînement": "Training plan", "Préparation judo": "Judo", "Remise en forme": "Fitness", "Course à pied": "Running", "Spartan": "Spartan", "Distance visée": "Target distance", "10 km": "10 km", "Semi-marathon": "Half marathon", "Marathon": "Marathon", "Mode judo": "Judo mode", "Non compétitif": "Casual", "Compétitif": "Competitive", "Maintien": "Maintain", "Prise de masse": "Bulk", "Sèche": "Cut", "Sous-programme": "Sub-programme", "Catégorie de poids": "Weight category", "Distance": "Distance", "Format Spartan": "Spartan format", "Séances judo / semaine": "Judo sessions / week", "Fermer": "Close", "Enregistrer": "Save", "Aide": "Help", "Configurer": "Settings", "Maintien : option la plus stable pendant un bloc d’entraînement chargé.": "Maintenance: the most stable option during a heavy training block.", "Prise de masse : surveille ton poids par rapport à ta catégorie visée, et vérifie que la masse gagnée reste fonctionnelle (force et puissance).": "Muscle gain: monitor your weight against your target category, and check that the mass gained stays functional (strength and power).", "Sèche : un déficit peut réduire la progression en force et en puissance et allonger la récupération. Confirme ce déficit avec un diététicien.": "Cut: a deficit can reduce strength and power progress and lengthen recovery. Confirm this deficit with a dietitian.", "Pendant la préparation judo, un déficit doit rester encadré pour ne pas nuire à la force et à la récupération.": "During judo preparation, a deficit must stay supervised so it does not harm strength or recovery.", "Repère OMS (Lignes directrices sur l’activité physique et la sédentarité) : 150 à 300 minutes d’activité aérobie d’intensité modérée par semaine, ou 75 à 150 minutes d’intensité soutenue, plus du renforcement musculaire au moins 2 jours par semaine.": "WHO guideline (physical activity and sedentary behaviour): 150 to 300 minutes of moderate aerobic activity per week, or 75 to 150 minutes of vigorous activity, plus muscle-strengthening at least 2 days per week.", "10 km : volume hebdomadaire en kilomètres, une sortie longue par semaine et du travail au seuil.": "10 km: weekly kilometre volume, one long run per week and threshold work.", "Semi-marathon : volume hebdomadaire en kilomètres, sortie longue progressive et travail au seuil.": "Half marathon: weekly kilometre volume, progressive long run and threshold work.", "Marathon : volume hebdomadaire en kilomètres avec une sortie longue, hausse limitée à environ 10 % par semaine.": "Marathon: weekly kilometre volume with a long run, increase limited to about 10% per week.", "Choisis une distance visée.": "Choose a target distance.", "10 km : 3 sorties par semaine, dont une sortie longue d’environ 60 à 75 min et une séance de seuil ou de fractionné.": "10 km: 3 runs per week, including a long run of about 60 to 75 min and a threshold or interval session.", "Semi-marathon : 3 à 4 sorties par semaine, sortie longue d’environ 90 à 120 min.": "Half marathon: 3 to 4 runs per week, long run of about 90 to 120 min.", "Marathon : 4 sorties par semaine, sortie longue d’environ 150 à 180 min. Hausse de volume limitée à environ 10 % par semaine, avec une semaine de décharge toutes les 4 semaines.": "Marathon: 4 runs per week, long run of about 150 to 180 min. Volume increase limited to about 10% per week, with a recovery week every 4 weeks.", "Choisis une distance.": "Choose a distance.", "Sprint : 5 km, environ 20 obstacles.": "Sprint: 5 km, about 20 obstacles.", "Super : 10 km, environ 25 obstacles.": "Super: 10 km, about 25 obstacles.", "Beast : 21 km, environ 30 obstacles.": "Beast: 21 km, about 30 obstacles.", "Ultra : 50 km, environ 60 obstacles.": "Ultra: 50 km, about 60 obstacles.", "Choisis un format Spartan.": "Choose a Spartan format.", " Un obstacle raté peut entraîner une pénalité (30 burpees dans les courses compétitives) : travaille la technique et la force de préhension.": " A missed obstacle can lead to a penalty (30 burpees in competitive races): work on technique and grip strength.", "Lun": "Mon", "Mar": "Tue", "Mer": "Wed", "Jeu": "Thu", "Ven": "Fri", "Sam": "Sat", "Dim": "Sun"};
+function TX(x){ return (data&&data.lang==='en'&&UI_EN[x])||x; }
+function descOf(e){ const en=data.lang==='en'; if(en&&DESC_EN[e.name]) return DESC_EN[e.name]; if(DESC[e.name]) return DESC[e.name]; return en?{txt:'No description yet for this exercise.',ph:['Start','Middle','End']}:{txt:'Pas encore de description pour cet exercice.',ph:['Départ','Phase centrale','Fin du mouvement']}; }
+function tapSeries(id){
+  const k='s'+id, now=Date.now();
+  if(lastTap[k]&&now-lastTap[k]<400){
+    lastTap[k]=0;
+    const f=findExo(id); if(!f) return;
+    const w=W(), c=w.sets[id]||0;
+    w.sets[id]=c>=f.e.sets?0:f.e.sets;
+    save(); render();
+    toast(w.sets[id]?'Max des séries':'Séries remises à 0');
+  } else lastTap[k]=now;
+}
+const TIP_SPEC={
+  'Snatch':{puissance:'Favorise l’ensemble du corps pour rester polyarticulaire : pousse fort des jambes et des hanches, puis monte progressivement en charge pour gagner en amplitude.'},
+  'Power snatch':{puissance:'Reste polyarticulaire : pousse à travers les jambes et les hanches, et monte la charge par paliers pour gagner en amplitude sans perdre la vitesse.'},
+  'Power clean':{puissance:'Pousse à travers tout le corps, hanches en premier. Monte la charge par paliers, en gardant la réception rapide et la barre près du corps.'},
+  'Hang clean':{puissance:'Départ depuis la mi-cuisse : extension explosive des hanches et des jambes, puis réception rapide. Charge modérée pour garder la vitesse.'}
+};
+const TIP_SPEC_EN={
+  'Snatch':{puissance:'Use the whole body to stay multi-joint: drive hard through the legs and hips, then build the load gradually to gain range.'},
+  'Power snatch':{puissance:'Stay multi-joint: drive through the legs and hips, and build the load in steps to gain range without losing speed.'},
+  'Power clean':{puissance:'Drive through the whole body, hips first. Build the load in steps, keeping the catch fast and the bar close to the body.'},
+  'Hang clean':{puissance:'Start from mid-thigh: explosive hip and leg extension, then a fast catch. Moderate load to keep speed.'}
+};
+function tipOfEN(e,sess){
+  const cat=catOf(sess)||'';
+  if(TIP_SPEC_EN[e.name]&&TIP_SPEC_EN[e.name][cat]) return TIP_SPEC_EN[e.name][cat];
+  const p=data.profile||{}, u=unitOf(e.name), out=[];
+  if(e.km||e.pace){
+    const d=e.km?e.km+' km':'Run';
+    const al=e.pace?' at '+e.pace:'';
+    if(/Threshold/.test(e.name)) out.push(d+al+': sustained pace without speeding up, a few words still possible.');
+    else if(/Long run/.test(e.name)) out.push(d+al+': steady pace, drink regularly and slow down if the end becomes too hard.');
+    else out.push(d+al+': easy pace, conversation possible.');
+    if(p.orient==='spartan') out.push('In Spartan, keep something in reserve for the obstacles at the end of the race.');
+    else if(p.orient==='course') out.push('Stay within the pace range so you arrive fresh for the next session.');
+  } else {
+    if(cat==='force') out.push(e.kg?'Heavy load: full rest of 2 to 3 min, strict technique before adding weight.':'Slow down the lowering phase to load the muscle.');
+    else if(cat==='puissance') out.push('Speed of execution first: stop the set as soon as the speed drops.');
+    else if(cat==='endurance') out.push('Short rest (45 s to 1 min): move on with controlled breathing.');
+    if(p.orient==='judo') out.push('Adapt the intensity to your recovery after judo.');
+    else if(p.orient==='spartan') out.push('Work linked to the obstacles: keep your grip and core engaged to the end.');
+    else if(p.orient==='rf'&&p.goal==='prise') out.push('Muscle gain: aim to progress from one session to the next.');
+    else if(p.orient==='rf'&&p.goal==='seche') out.push('Cut: short rest and a steady rhythm.');
+  }
+  return out.join(' ');
+}
+function tipOf(e,sess){
+  if(data.lang==='en') return tipOfEN(e,sess);
+  const cat=catOf(sess)||'';
+  if(TIP_SPEC[e.name]&&TIP_SPEC[e.name][cat]) return TIP_SPEC[e.name][cat];
+  const p=data.profile||{}, u=unitOf(e.name), out=[];
+  if(e.km||e.pace){
+    const d=e.km?e.km+' km':'Sortie';
+    const al=e.pace?' à '+e.pace:'';
+    if(/Threshold/.test(e.name)) out.push(d+al+' : allure soutenue sans accélérer, quelques mots encore possibles.');
+    else if(/Long run/.test(e.name)) out.push(d+al+' : allure constante, bois régulièrement et ralentis si la fin devient trop difficile.');
+    else out.push(d+al+' : allure facile, conversation possible.');
+    if(p.orient==='spartan') out.push('En Spartan, garde de la réserve pour les obstacles de la fin de course.');
+    else if(p.orient==='course') out.push('Respecte la fourchette d’allure pour arriver frais à la séance suivante.');
+  } else {
+    if(cat==='force') out.push(e.kg?'Charge lourde : repos complet de 2 à 3 min, technique stricte avant d’ajouter du poids.':'Ralentis la phase de descente pour solliciter le muscle.');
+    else if(cat==='puissance') out.push('Vitesse d’exécution avant tout : arrête la série dès que la vitesse baisse.');
+    else if(cat==='endurance') out.push('Repos court (45 s à 1 min) : enchaîne avec une respiration contrôlée.');
+    if(p.orient==='judo') out.push('Adapte l’intensité à ta récupération après le judo.');
+    else if(p.orient==='spartan') out.push('Travail en lien avec les obstacles : garde la prise et le gainage jusqu’au bout.');
+    else if(p.orient==='rf'&&p.goal==='prise') out.push('Prise de masse : cherche à progresser d’une séance à l’autre.');
+    else if(p.orient==='rf'&&p.goal==='seche') out.push('Sèche : repos court et rythme soutenu.');
+  }
+  return out.join(' ');
+}
+function openInfo(id){
+  const f=findExo(id); if(!f) return;
+  const {e}=f; const sess=f.s;
+  document.getElementById('modal').innerHTML=`
+    <h2 style="padding-left:9px">${esc(T(e.name))}</h2>
+    <div class="desc">${esc(descOf(e).txt)}</div>
+    <div class="phases">${descOf(e).ph.map((p,i)=>`<div class="ph"><b>${i+1}</b>${esc(p)}</div>`).join('')}</div>
+    <div class="tip">${esc(tipOf(e,sess))}</div>
+    ${isAddon(id)?`<button class="back" data-rmad="${id}">Retirer cet exercice</button>`:''}
+    <button class="close" id="closeInfo">Fermer</button>`;
+  document.getElementById('closeInfo').onclick=closeOv;
+  document.getElementById('ov').classList.add('show');
+}
+const EXTRA={course:{name:'Course à pied',exos:[{name:'Course',sets:1,reps:1,kg:0}]},judo:{name:'Entraînement judo',exos:[{name:'Séance de judo',sets:1,reps:1,kg:0}]}};
+const CROSSFIT={name:'Séance crossfit',exos:[{name:'Burpees',sets:3,reps:10,kg:0},{name:'Thrusters',sets:3,reps:10,kg:40},{name:'Box jumps',sets:3,reps:10,kg:0}]};
+function srcOf(k){if(EXTRA[k])return EXTRA[k];if(k==='crossfit')return CROSSFIT;const t=TEMPLATE.find(s=>s.id===k);return{name:t.name,exos:t.exos}}
+function openAddMenu(){ sm={mode:'add',day:selDay,target:null,revertible:false}; renderMenu(); }
+function openModifyMenu(id){
+  const s=sessions(W()).find(x=>x.id===id); if(!s) return;
+  sm={mode:'modify',day:s.day,target:id,revertible:!!s.replaces}; renderMenu();
+}
+function renderMenu(){
+  document.getElementById('modal').innerHTML=`<h2>${sm.mode==='add'?'Ajouter une séance':'Modifier la séance'} · ${dayL(sm.day)}</h2>
+    <button class="opt" data-opt="course">Course à pied</button>
+    <button class="opt" data-opt="judo">Entraînement judo</button>
+    <button class="opt" data-opt="crossfit">Séance crossfit</button>
+    ${TEMPLATE.map(s=>`<button class="opt" data-opt="${s.id}">${esc(s.name)}</button>`).join('')}
+    ${sm.revertible?'<button class="opt" data-revert="1">↶ Rétablir la séance prévue</button>':''}
+    <button class="opt" data-opt="perso">Séance personnalisée</button>
+    <button class="back" data-close="1">Annuler</button>`;
+  document.getElementById('ov').classList.add('show');
+}
+function showAddDetail(k){
+  if(k==='perso'){showPerso();return}
+  if(k==='course'){showCourseForm();return}
+  const src=srcOf(k);
+  document.getElementById('modal').innerHTML=`<h2>${esc(src.name)}</h2>
+    <div class="muted" style="margin-bottom:6px">Séries à effectuer</div>
+    ${src.exos.map(e=>`<div class="row"><span>${esc(e.name)}</span><span class="muted">${e.sets}×${e.reps}${e.kg?' · '+e.kg+' kg':''}</span></div>`).join('')}
+    <button class="close" data-confirm="${k}">${sm.mode==='add'?'Ajouter à ':'Remplacer le '}${dayL(sm.day)}</button>
+    <button class="back" data-back="1">Retour</button>`;
+}
+const GRP={cardio:'Cardio',jambes:'Jambes',tronc:'Core',full:'Core',bras:'Bras','poussée':'Haut du corps',tirage:'Haut du corps'};
+const GRP_OV={'Développé militaire':'Épaules','Push press':'Épaules','Biceps curl':'Bras','Pinch plate':'Bras','Suspension (dead hang)':'Bras','Sledge pull':'Haut du corps','Uchi-komi':'Judo technique','Randori':'Judo technique'};
+const OBJ={'Back squat':'force','Front squat':'force','Soulevé de terre':'force','Soulevé trap bar':'force','Soulevé de terre roumain':'élongation','Nordic curl':'élongation','Kickback poulie':'force','Fentes bulgares':'force','Power clean':'explosivité','Hang clean':'explosivité','Power snatch':'explosivité','Snatch':'explosivité','Push press':'explosivité','Sauts pliométriques':'explosivité','Box jumps':'explosivité','Bench press':'force','Incline bench press':'force','Développé militaire':'force','Pompes lestées':'force','Rowing barre':'force','Tractions lestées':'force','Lat pull-down':'force','Thrusters':'force','Burpees':'endurance','Fractionné course':'endurance','Fractionné vélo':'endurance','Gainage':'endurance','Gainage latéral':'endurance','Russian twist':'endurance','Pinch plate':'endurance','Biceps curl':'hypertrophie','Renforcement force : préhension':'force','Élévation mollets':'force','Step-up':'force','Fentes marchées':'endurance','Montées de genoux':'endurance','Pas chassés':'endurance','Course en côte':'puissance','Sledge pull':'force','Plate core rotation':'puissance','Easy run':'endurance','Threshold':'endurance','Long run':'endurance','Pompes':'endurance','Dips':'force','Développé incliné haltères':'force','Face pull':'endurance','Tirage horizontal':'force','Hip thrust':'force','Goblet squat':'force','Good morning':'force','Soulevé de terre unilatéral':'force','Pont fessier':'endurance','Dead bug':'endurance','Bird dog':'endurance','Mountain climbers':'endurance','Relevé de jambes suspendu':'force','Suspension (dead hang)':'endurance','Farmer carry':'endurance','Sandbag carry':'endurance','Bear crawl':'endurance','Montée de corde':'force','Strides (accélérations)':'puissance','Kettlebell swing':'puissance','Medicine ball slam':'puissance','Sled push':'puissance','Uchi-komi':'endurance','Randori':'endurance'};
+function grpOf(n){ if(GRP_OV[n]) return GRP_OV[n]; const m=META[n]; return (m&&GRP[m[0]])||'Autres'; }
+function objOf(n){ return OBJ[n]?` <span class="ob">(${T(OBJ[n])})</span>`:''; }
+function groupRows(items,fn){
+  return ['Jambes','Core','Épaules','Bras','Haut du corps','Cardio','Judo technique','Autres'].map(g=>{const its=items.filter(e=>grpOf(e.name)===g); return its.length?`<div class="grp"><div class="gt">${T(g)}</div>${its.map(fn).join('')}</div>`:'';}).join('');
+}
+const CC={force:'#C6F432',puissance:'#C6F432',endurance:'#C6F432'};
+function colorOf(s){return CC[catOf(s)]||'var(--txt)'}
+function catalog(){
+  const seen={}, out=[];
+  [...TEMPLATE,CROSSFIT,{exos:LIBRARY},{exos:Object.values(BANK).flat(2)}].forEach(s=>s.exos.forEach(e=>{if(!seen[e.name]){seen[e.name]=1;out.push(e)}}));
+  return out;
+}
+function showPerso(){
+  document.getElementById('modal').innerHTML=`<h2>Séance personnalisée · ${dayL(sm.day)}</h2>
+    <div class="muted" style="margin-bottom:6px">Indique les séries effectuées pour chaque exercice</div>
+    ${catalog().map(e=>`<div class="row"><span>${esc(T(e.name))}</span><span class="rp muted" style="font-size:13px;white-space:nowrap">${e.reps} rep</span><input type="number" min="0" max="30" value="0" inputmode="numeric" data-cat="${esc(e.name)}" data-reps="${e.reps}" data-kg="${e.kg}" style="width:64px;font:inherit;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px"></div>`).join('')}
+    <button class="close" data-confirm="perso">Enregistrer la séance</button>
+    <button class="back" data-back="1">Retour</button>`;
+}
+function addPerso(){
+  const rows=[...document.querySelectorAll('#modal input[data-cat]')].map(i=>({name:i.dataset.cat,sets:Math.max(0,parseInt(i.value,10)||0),reps:+i.dataset.reps,kg:+i.dataset.kg})).filter(r=>r.sets>0);
+  if(!rows.length){toast('Indique au moins une série');return}
+  const w=W(); w.extra=w.extra||[];
+  if(sm.mode==='modify'){
+    const old=w.extra.find(x=>x.id===sm.target);
+    if(old){uncredit(w,old); w.extra=w.extra.filter(x=>x.id!==sm.target); delete w.done[sm.target];}
+  }
+  const id='x'+Date.now().toString(36);
+  const s={id,name:'Séance personnalisée',day:sm.day,extra:true,log:true,replaces:null,times:1,base:rows.map(r=>({name:r.name,sets:r.sets,reps:r.reps,kg:r.kg})),exos:[],credits:{}};
+  w.extra.push(s); w.done[id]=true;
+  rebuild(w,s);
+  save(); closeOv(); render(); toast('Séance personnalisée enregistrée');
+}
+function addSession(k){
+  if(k==='perso'){addPerso();return}
+  if(k==='course'){addCourse();return}
+  if(k==='addex'){addExercises();return}
+  const w=W(), src=srcOf(k), id='x'+Date.now().toString(36);
+  w.extra=w.extra||[]; w.removed=w.removed||{};
+  let replaces=null;
+  if(sm.mode==='modify'){
+    const old=w.extra.find(x=>x.id===sm.target);
+    if(old){ uncredit(w,old); replaces=old.replaces; w.extra=w.extra.filter(x=>x.id!==sm.target); delete w.done[sm.target]; }
+    else { replaces=sm.target; w.removed[sm.target]=true; }
+  }
+  w.extra.push({id,name:src.name,day:sm.day,extra:true,log:sm.mode!=='modify',replaces,times:1,base:src.exos,credits:{},exos:src.exos.map((e,i)=>({id:id+'_'+i,name:e.name,sets:e.sets,reps:e.reps,kg:e.kg}))});
+  const ns=w.extra[w.extra.length-1]; w.done[ns.id]=true; rebuild(w,ns);
+  save(); closeOv(); render(); toast('Séance ajoutée');
+}
+function uncredit(w,s){
+  if(!s||!s.credits) return;
+  for(const k in s.credits) w.sets[k]=Math.max(0,(w.sets[k]||0)-s.credits[k]);
+  s.credits={};
+}
+function rebuild(w,s){
+  uncredit(w,s);
+  s.base=s.base||s.exos.map(e=>({name:e.name,sets:e.sets,reps:e.reps,kg:e.kg}));
+  s.exos=s.base.map((e,i)=>({id:s.id+'_'+i,name:e.name,sets:e.sets*(s.times||1),reps:e.reps,kg:e.kg}));
+  if(!s.log) return;
+  s.credits={};
+  const plan=sessions(w).filter(p=>!p.log);
+  s.exos.forEach(e=>{
+    w.sets[e.id]=e.sets;
+    let left=e.sets;
+    plan.forEach(p=>p.exos.forEach(x=>{
+      if(left<=0||x.name!==e.name) return;
+      const rem=x.sets-Math.min(w.sets[x.id]||0,x.sets);
+      const c=Math.min(rem,left);
+      if(c>0){w.sets[x.id]=(w.sets[x.id]||0)+c; s.credits[x.id]=(s.credits[x.id]||0)+c; left-=c;}
+    }));
+  });
+}
+function isAddon(id){const a=W().addons||{};return Object.values(a).some(l=>l.some(x=>x.id===id))}
+function removeAddon(id){const w=W();for(const k in (w.addons||{})) w.addons[k]=w.addons[k].filter(x=>x.id!==id);save();closeOv();render();toast('Exercice retiré')}
+function openExPicker(sid){
+  sm={mode:'addex',day:0,target:sid,revertible:false};
+  document.getElementById('modal').innerHTML=`<h2>Ajouter des exercices</h2>
+    <div class="muted" style="margin-bottom:6px;font-size:80%">Indique le nombre de séries pour chaque exercice</div>
+    <div style="height:14px"></div>
+    ${groupRows(catalog(),e=>`<div class="row"><span>${esc(T(e.name))}${objOf(e.name)}</span><span class="rp muted" style="font-size:13px;white-space:nowrap">${e.reps} rep</span><input type="number" min="0" max="30" value="0" inputmode="numeric" data-cat="${esc(e.name)}" data-reps="${e.reps}" data-kg="${e.kg}" style="width:64px;font:inherit;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px"></div>`)}
+    <button class="close" data-confirm="addex">Ajouter à la séance</button>
+    <button class="back" data-close="1">Annuler</button>`;
+  document.getElementById('ov').classList.add('show');
+}
+function addExercises(){
+  const rows=[...document.querySelectorAll('#modal input[data-cat]')].map(i=>({name:i.dataset.cat,sets:Math.max(0,parseInt(i.value,10)||0),reps:+i.dataset.reps,kg:+i.dataset.kg})).filter(r=>r.sets>0);
+  if(!rows.length){toast('Indique au moins une série');return}
+  const w=W(); w.addons=w.addons||{};
+  const list=w.addons[sm.target]||[], stamp=Date.now().toString(36);
+  rows.forEach((r,i)=>list.push({id:'ad'+stamp+i,name:r.name,sets:r.sets,reps:r.reps,kg:r.kg}));
+  w.addons[sm.target]=list; save(); closeOv(); render(); toast('Exercice ajouté');
+}
+const PCT={1:1,2:.95,3:.92,4:.89,5:.86,6:.83,8:.78,10:.74,12:.7};
+function pctOf(r){return PCT[r]||(r>12?.65:.75)}
+function kgOf(e){const pr=(data.prs||{})[e.name]; if(!e.kg||!pr) return e.kg; return Math.round(pr*pctOf(e.reps)*phaseF()/2.5)*2.5}
+const PHASE=[.90,.93,.96,.80];
+function phaseF(){const a=new Date(2026,10,2), t=wstart(offset), wk=Math.round((t-a)/(7*864e5)); return PHASE[((wk%4)+4)%4]}
+function currentTheme(){return document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
+function setTheme(t){document.documentElement.dataset.theme=t;data.theme=t;save()}
+function openSettings(){
+  document.getElementById('modal').innerHTML=`<h2>${T('Réglages')}</h2>
+    <div class="row" style="align-items:center"><span>${T('Mode sombre')}</span><button class="switch" role="switch" aria-label="Mode sombre" aria-checked="${currentTheme()==='dark'}" id="sw"></button></div>
+    <div class="row" style="align-items:center"><span>${T('Personnel')}</span><button class="mini" id="perBtn">${TX('Configurer')}</button></div>
+    <div class="row" style="align-items:center"><span>${T('Compte')}</span><button class="mini" id="accBtn">${sbUser?esc(sbUser.email):T('Se connecter')}</button></div>
+    <div class="row" style="align-items:center"><span>${T('Langue')}</span><button class="mini" id="langBtn">${data.lang==='en'?'EN':'FR'}</button></div>
+    <div class="row" style="align-items:center"><span>${TX('Aide')}</span><button class="mini" id="helpBtn" style="width:30px;padding:4px 0;text-align:center">?</button></div>
+
+    <button class="back" data-close="1">Fermer</button>`;
+  document.getElementById('ov').classList.add('show');
+  document.getElementById('sw').onclick=()=>{setTheme(currentTheme()==='dark'?'light':'dark');openSettings()};
+  document.getElementById('perBtn').onclick=()=>openPersonal();
+  document.getElementById('accBtn').onclick=()=>openAccount();
+  document.getElementById('langBtn').onclick=()=>openLang();
+  document.getElementById('helpBtn').onclick=()=>openHelp();
+
+}
+const UN={'Sauts pliométriques':'rp','Box jumps':'cm','Nordic curl':'rp','Pas chassés':'rp','Burpees':'rp','Dead bug':'rp','Relevé de jambes suspendu':'rp','Montée de corde':'s'};
+const SEC={};
+function unitOf(n){
+  if(UN[n]) return UN[n];
+  if(/Easy run|Threshold|Long run/.test(n)) return 'mk';
+  if(/Gainage|Dead hang|Strides|Montées de genoux|Course en côte|Mountain climbers|Bear crawl/.test(n)) return 's';
+  return 'kg';
+}
+function phOf(n){ const u=unitOf(n); return u==='rp'?'reps':u==='s'?'secs':u; }
+function outOf(n){ const u=unitOf(n); return u==='rp'?'RP':u==='s'?'S':u; }
+function openPRs(){
+  document.getElementById('modal').innerHTML=`<div class="stickyh"><h2>Charges de référence (PR)</h2>
+    <div class="muted" style="margin-bottom:6px;font-size:80%">Saisis ton PR : les charges prévues sont recalculées en % selon les répétitions. Vide = charge de départ.</div></div>
+    <div style="height:28px"></div>
+    ${groupRows(catalog(),e=>`<div class="row"><span>${esc(T(e.name))}</span><span style="white-space:nowrap;display:inline-flex;align-items:center;justify-content:flex-end;width:124px">${SEC[e.name]?`<button type="button" class="arr" data-sec="${esc(e.name)}">▾</button>`:''}<input type="number" inputmode="decimal" min="0" step="0.5" value="${(data.prs||{})[e.name]||''}" placeholder="${phOf(e.name)}" data-pr="${esc(e.name)}" style="width:80px;font:inherit;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px"><span class="muted" style="font-size:12px;margin-left:4px;width:26px;text-align:left">${outOf(e.name)}</span></span></div>${SEC[e.name]?`<div class="row" data-sec-row="${esc(e.name)}" style="display:none"><span class="muted" style="font-size:13px">2e valeur (facultatif)</span><span style="white-space:nowrap"><input type="number" inputmode="decimal" min="0" step="0.5" value="${((data.prs2||{})[e.name])||''}" placeholder="${SEC[e.name]}" data-prs2="${esc(e.name)}" style="width:80px;font:inherit;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px"><span class="muted" style="font-size:12px;margin-left:4px">${SEC[e.name]}</span></span></div>`:''}`)}
+    <button class="close" data-prsave="1">Enregistrer</button>
+    <button class="back" data-back-settings="1">Retour</button>`;
+}
+function savePRs(){
+  data.prs=data.prs||{};
+  document.querySelectorAll('#modal input[data-pr]').forEach(i=>{const v=parseFloat(i.value); if(v>0) data.prs[i.dataset.pr]=v; else delete data.prs[i.dataset.pr];});
+  data.prs2=data.prs2||{};
+  document.querySelectorAll('#modal input[data-prs2]').forEach(i=>{const v=parseFloat(i.value); if(v>0) data.prs2[i.dataset.prs2]=v; else delete data.prs2[i.dataset.prs2];});
+  save(); closeOv(); render(); toast('Charges recalculées');
+}
+function catOf(s){if(s.kind) return s.kind; const n=s.name.toLowerCase();return n.includes('force')?'force':n.includes('puissance')?'puissance':n.includes('endurance')||n.includes('easy')||n.includes('threshold')||n.includes('long run')||n.includes('judo')?'endurance':null}
+function coefOf(s){
+  const n=s.name.toLowerCase();
+  if(s.cat) return s.cat;
+  if(n.includes('judo')) return {endurance:.4,puissance:.4,force:.2};
+  if(n.includes('crossfit')) return {endurance:1,puissance:.5,force:.2};
+  if(n.includes('course')) return {endurance:1};
+  const c=catOf(s); return c?{[c]:1}:{};
+}
+
+function sessDur(s){ if(s.dur) return s.dur; const km=s.exos.reduce((a,e)=>a+(e.km||0),0); if(km) return km*6; if(isJudoS(s)||/judo/i.test(s.name)) return 90; return catOf(s)==='force'?60:45; }
+function exoLoad(s,e,n,tot){
+  const wt=(data.profile&&data.profile.w)||70;
+  const judo=isJudoS(s)||/judo/i.test(s.name);
+  const cat=judo?'judo':(catOf(s)||'');
+  const f=tot>0?n/tot:0;
+  const minutes=e.km?e.km*6*(e.sets>0?n/e.sets:0):sessDur(s)*f;
+  const met=judo?9:cat==='puissance'?6:cat==='force'?5:7;
+  const kcal=met*wt*minutes/60;
+  const lift=judo?0:n*(e.reps||0)*(e.kg||0);
+  const cardio=(e.km||cat==='endurance')?minutes:0;
+  const tech=(judo?1:cat==='puissance'?0.6:cat==='force'?0.3:0.4)*f;
+  const fat=(judo?0.9:cat==='puissance'?0.9:cat==='force'?0.8:0.5)*f;
+  return 0.25*kcal/400+0.20*lift/1500+0.20*cardio/60+0.20*tech+0.15*fat;
+}
+function loadOf(s){ const T0=s.exos.reduce((a,e)=>a+e.sets,0); return s.exos.reduce((a,e)=>a+exoLoad(s,e,e.sets,T0),0); }
+function budgetOf(){
+  const p=data.profile||{}; const wt=p.w||70;
+  const gF={prise:1.1,maintien:1,seche:0.9}[p.goal]||1;
+  const sF=Math.pow(wt/70,0.75);
+  let ref;
+  if(p.orient==='judo'||!p.orient) ref=loadOf(TEMPLATE[0])+loadOf(TEMPLATE[1])+2*loadOf({name:'Judo',exos:TEMPLATE[2].exos})+(p.jm==='comp'?loadOf(condSess(Array.isArray(p.judoDays)?p.judoDays:[5])):0);
+  else ref=TPL().filter(x=>!isJudoS(x)).reduce((a,x)=>a+loadOf(x),0);
+  return ref*gF*sF;
+}
+function recalcWeek(w){
+  if(relWeek(w)<0) return;
+  const startD=relWeek(w)>0?0:todayIdx;
+  const cmpOld=(w.extra||[]).find(x=>x.id==='cmp'); const cmpStarted=!!cmpOld&&(!!w.done.cmp||cmpOld.exos.some(e=>(w.sets[e.id]||0)>0));
+  w.extra=(w.extra||[]).filter(x=>x.id!=='cmp'||cmpStarted); let cmpNew=null;
+  w.trim={}; w.merged={}; const pin=w.pinned||{}; const kd={}; sessions(w).filter(s=>w.done[s.id]).forEach(s=>{kd[s.id]=s.day}); w.moved={...kd}; w.dropped={};
+  const all=sessions(w).filter(s=>!s.log);
+  const isTpl=s=>TPL().some(t=>t.id===s.id);
+  const credit={force:0,puissance:0,endurance:0};
+  sessions(w).filter(s=>w.done[s.id]).forEach(s=>{const c=coefOf(s); for(const k in c) credit[k]+=c[k];});
+  const prio={force:0,puissance:1,endurance:2};
+  const plannedCnt={force:0,puissance:0,endurance:0};
+  all.filter(s=>isTpl(s)&&!isJudoS(s)).forEach(s=>{const c=catOf(s); if(c) plannedCnt[c]++;});
+  const need={force:plannedCnt.force-credit.force, puissance:plannedCnt.puissance-credit.puissance, endurance:plannedCnt.endurance-credit.endurance};
+  const dn=(s,e)=>Math.min(w.sets[e.id]||0,e.sets);
+  const tot0=s=>s.exos.reduce((a,e)=>a+e.sets,0);
+  const partLoad=s=>s.exos.reduce((a,e)=>a+exoLoad(s,e,dn(s,e),tot0(s)),0);
+  const remLoad=(s,ex)=>ex.reduce((a,e)=>a+exoLoad(s,e,Math.max(0,e.sets-dn(s,e)),tot0(s)),0);
+  let budRem=budgetOf()-all.filter(s=>isJudoS(s)||w.done[s.id]).reduce((a,s)=>a+loadOf(s),0)-all.filter(s=>!isJudoS(s)&&!w.done[s.id]&&isTpl(s)&&!s.log).reduce((a,s)=>a+partLoad(s),0);
+  const okB=new Set();
+  const pendingT=all.filter(s=>isTpl(s)&&!isJudoS(s)&&!w.done[s.id]).sort((x,y)=>(prio[catOf(x)]-prio[catOf(y)])||(x.day-y.day));
+  pendingT.forEach(s=>{
+    const started=s.exos.some(e=>dn(s,e)>0);
+    let exos=s.exos.map(e=>({...e}));
+    const cost=()=>remLoad(s,exos);
+    if(budRem>=cost()-1e-6){ budRem-=cost(); okB.add(s.id); w.trim[s.id]=Object.fromEntries(exos.map(e=>[e.id,e.sets])); return; }
+    while(cost()>budRem+1e-6){
+      const rm=exos.map((e,i)=>dn(s,e)===0?i:-1).filter(i=>i>=0).pop();
+      if(exos.length>MIN_EXOS && rm!==undefined){ exos.splice(rm,1); continue; }
+      const cand=exos.map((e,i)=>({e,i})).filter(x=>x.e.sets>Math.max(dn(s,x.e)+1,MIN_SETS)).sort((a,b)=>(b.e.sets-a.e.sets)||(b.i-a.i));
+      if(cand.length){ cand[0].e.sets--; continue; }
+      if(rm!==undefined && exos.length>1){ exos.splice(rm,1); continue; }
+      break;
+    }
+    if((cost()<=budRem+1e-6)||started||budRem>0){
+      budRem-=cost(); okB.add(s.id);
+      w.trim[s.id]=Object.fromEntries(exos.map(e=>[e.id,e.sets]));
+    }
+  });
+  {
+    const kept=pendingT.filter(s=>okB.has(s.id));
+    kept.forEach(stub=>{
+      const started=stub.exos.some(e=>dn(stub,e)>0);
+      const tr=w.trim[stub.id];
+      const exos=tr?stub.exos.filter(e=>tr[e.id]!==undefined).map(e=>({...e,sets:tr[e.id]})):stub.exos;
+      const hasKm=exos.some(e=>e.km);
+      const tot=exos.reduce((a,e)=>a+e.sets,0);
+      if(started||hasKm||tot>=MIN_SESSION_SETS) return;
+      const target=kept.find(t=>t.id!==stub.id&&okB.has(t.id)&&!t.exos.some(e=>e.km));
+      if(!target) return;
+      w.merged[target.id]=(w.merged[target.id]||[]).concat(exos);
+      okB.delete(stub.id);
+    });
+  }
+  const keep=pendingT.filter(s=>{
+    if(!okB.has(s.id)){ w.dropped[s.id]=true; return false; }
+    return true;
+  });
+  // Remplissage : la charge non couverte (séance de judo supprimée, ou budget non atteint) est reportée sur les séances annexes, puis sur une séance complémentaire
+  const costOf=(sx,exos)=>{const T0=exos.reduce((a,e)=>a+e.sets,0); return exos.reduce((a,e)=>a+exoLoad(sx,e,e.sets,T0),0);};
+  let gapL=budRem;
+  const fillT=keep.filter(sx=>w.trim[sx.id]&&!sx.exos.some(e=>dn(sx,e)>0)&&!sx.exos.some(e=>e.km));
+  for(let pass=0; pass<2; pass++)
+  for(let guard=0; guard<300 && gapL>0.02 && fillT.length; guard++){
+    let best=null;
+    fillT.forEach(sx=>{
+      const tr=w.trim[sx.id]; const cur=sx.exos.filter(e=>tr[e.id]!==undefined).map(e=>({...e,sets:tr[e.id]}));
+      const base=costOf(sx,cur);
+      cur.forEach(e=>{
+        const cap=pass===0?Math.min(6,(sx.exos.find(x=>x.id===e.id).sets)+2):10;
+        if(tr[e.id]>=cap) return;
+        const inc=costOf(sx,cur.map(x=>x.id===e.id?{...x,sets:x.sets+1}:x))-base;
+        if(inc>0 && inc<=gapL+1e-6 && (!best||inc>best.inc)) best={sx,id:e.id,inc};
+      });
+    });
+    if(!best) break;
+    w.trim[best.sx.id][best.id]++; gapL-=best.inc;
+  }
+  if(!cmpStarted && gapL>0.1){
+    // La charge d'une séance dépend surtout de sa durée : on règle la durée de la séance complémentaire sur le reliquat
+    const exo={id:'cmp_0',name:'Circuit judo sans contact',sets:1,reps:1,kg:0};
+    const cc=d=>costOf({kind:'endurance',dur:d,exos:[exo]},[exo]);
+    let lo=10, hi=120;
+    if(cc(hi)<=gapL){ lo=hi; } else if(cc(lo)<=gapL){ while(hi-lo>1){ const m=(lo+hi)/2; if(cc(m)<=gapL) lo=m; else hi=m; } } else { lo=0; }
+    const d=Math.floor(lo);
+    if(d>0){
+      cmpNew={id:'cmp',name:'Complément '+d+' min',kind:'endurance',dur:d,extra:true,log:false,replaces:null,times:1,credits:{},exos:[exo]};
+      w.extra.push(cmpNew); gapL-=cc(d);
+    }
+  }
+  const occupied=new Set([...sessions(w).filter(s=>w.done[s.id]||!isTpl(s)).map(s=>s.day),...jDays()]);
+  const heavyDays=sessions(w).filter(s=>w.done[s.id]&&['force','puissance'].includes(catOf(s))).map(s=>s.day);
+  keep.forEach(s=>{
+    if(pin[s.id]!==undefined && !jDays().includes(pin[s.id])){ w.moved[s.id]=pin[s.id]; occupied.add(pin[s.id]); if(['force','puissance'].includes(catOf(s))) heavyDays.push(pin[s.id]); return; }
+    const heavy=catOf(s)!=='endurance';
+    for(let d=startD; d<=6; d++){
+      if(occupied.has(d)) continue;
+      if(heavy && heavyDays.some(h=>Math.abs(h-d)<2)) continue;
+      w.moved[s.id]=d; occupied.add(d); if(heavy) heavyDays.push(d); return;
+    }
+  });
+  if(cmpNew){
+    let placed=false;
+    for(let d=startD; d<=6 && !placed; d++){ if(!occupied.has(d)){ w.moved.cmp=d; occupied.add(d); placed=true; } }
+    if(!placed) w.moved.cmp=startD;
+  }
+}
+function assignVariants(w){
+  w.variant=w.variant||{};
+  if(relWeek(w)<0) return;
+  const tpl=sessions(w).filter(s=>!s.log && BANK[s.id]).sort((a,b)=>a.day-b.day);
+  tpl.forEach(s=>{
+    if(w.done[s.id] && w.variant[s.id]!==undefined) return;
+    const nb=tpl.filter(o=>o.id!==s.id && catOf(o)===catOf(s) && Math.abs(o.day-s.day)===1).map(o=>varIdx(w,o.id));
+    if(w.variant[s.id]!==undefined && !nb.includes(w.variant[s.id])) return;
+    const order=[0,1,2].map(i=>(wkOf(w)+i)%3);
+    const ok=order.find(v=>!nb.includes(v));
+    w.variant[s.id]=ok!==undefined?ok:order[0];
+  });
+}
+function showPop(title,lines,a,onA,b,onB){
+  let el=document.getElementById('pop');
+  if(!el){ el=document.createElement('div'); el.id='pop'; document.body.appendChild(el); }
+  el.innerHTML=`<div class="popc"><h3>${esc(title)}</h3><ul>${lines.map(l=>`<li>${l}</li>`).join('')}</ul><div class="popb"><button class="hb" id="popB">${esc(b)}</button><button class="hb on" id="popA">${esc(a)}</button></div></div>`;
+  el.classList.add('show');
+  document.getElementById('popA').onclick=()=>{ el.classList.remove('show'); if(onA) onA(); };
+  document.getElementById('popB').onclick=()=>{ el.classList.remove('show'); if(onB) onB(); };
+}
+function weekLabel(w){ return new Date(w.key+'T00:00:00').toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
+function runRecalc(auto){
+  document.body.classList.add('busy');
+  setTimeout(()=>{
+    const cur=fmt(wstart(0)); const cw=W();
+    const keys=[...new Set([...Object.keys(data.weeks).filter(k=>k>=cur), cw.key])].sort();
+    const lines=[], clones={};
+    keys.forEach(k=>{
+      const base=data.weeks[k]; if(!base || relWeek(base)<0) return;
+      const clone=JSON.parse(JSON.stringify(base));
+      recalcWeek(clone); assignVariants(clone); recalcWeek(clone); assignVariants(clone);
+      const pre=k===cur?'':T('Semaine du')+' '+weekLabel(base)+' : ';
+      const before=new Map(sessions(base,true).filter(s=>!s.log).map(s=>[s.id,s.day]));
+      const afterS=sessions(clone).filter(s=>!s.log); const afterIds=new Set(afterS.map(s=>s.id));
+      afterS.forEach(s=>{ const b=before.get(s.id); if(b!==undefined&&b!==s.day) lines.push(pre+esc(T(s.name))+' : '+dayL(b)+' → '+dayL(s.day)); });
+      sessions(base,true).filter(s=>!s.log&&!afterIds.has(s.id)).forEach(s=>lines.push(pre+esc(T(s.name))+' : '+T('retirée, budget hebdomadaire atteint')));
+      clones[k]=clone;
+    });
+    document.body.classList.remove('busy');
+    if(auto){ Object.keys(clones).forEach(k=>Object.assign(data.weeks[k], clones[k])); save(); render(); toast(T('Programme mis à jour')); return; }
+    if(!lines.length){ save(); render(); toast(T('Semaine inchangée')); return; }
+    showPop(T('Semaine proposée'), lines, T('Appliquer'), ()=>{ Object.keys(clones).forEach(k=>Object.assign(data.weeks[k], clones[k])); save(); render(); toast(T('Semaine recalculée')); }, T('Garder'), null);
+  },700);
+}
+function histAgg(){
+  const agg={};
+  (data.ledger||[]).forEach(r=>{
+    const a=agg[r.name]||(agg[r.name]={sets:0,reps:0,kg:0});
+    a.sets+=r.n; a.reps+=r.n*(r.reps||1); a.kg+=r.n*(r.reps||1)*(r.kg||0);
+  });
+  return Object.entries(agg).filter(([,a])=>a.sets>0).sort((x,y)=>y[1].kg-x[1].kg||y[1].sets-x[1].sets);
+}
+function openHistory(){
+  const rows=histAgg().sort((x,y)=>histSort==='desc'?y[1].reps-x[1].reps:x[1].reps-y[1].reps);
+  const totalKg=rows.reduce((s,r)=>s+r[1].kg,0);
+  document.getElementById('modal').innerHTML=`<div class="stickyh"><div class="hbox hvolt"><h2>Historique</h2><div class="muted">Total poussé : <b>${Math.round(totalKg).toLocaleString('fr-FR')} kg</b></div></div></div></div>
+    <div style="height:20px"></div>
+    ${rows.length?rows.map(([n,a])=>`<div class="row hrow"><span class="hn">${esc(T(n))}</span><span class="hs">${a.reps}</span><span class="hk">${Math.round(a.kg).toLocaleString('fr-FR')} kg</span></div>`).join(''):'<div class="muted">Aucune série enregistrée pour l’instant.</div>'}
+    <button class="back" data-close="1">Fermer</button>`;
+}
+async function exportCSV(){
+  const csv=['Exercice;Répétitions;Kg cumulés',...histAgg().map(([n,a])=>`${n};${a.reps};${Math.round(a.kg)}`)].join('\n');
+  try{
+    const dl=await window.claude.use('downloads');
+    if(!dl){toast('Export indisponible');return}
+    await dl.save({filename:'historique_seances.csv',data:'\ufeff'+csv});
+    toast('Export enregistré');
+  }catch(e){toast('Export refusé ou indisponible')}
+}
+function showCourseForm(){
+  const inp='width:90px;font:inherit;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px';
+  document.getElementById('modal').innerHTML=`<h2>Course à pied · ${dayL(sm.day)}</h2>
+    <div class="row"><span>Durée (min)</span><input id="cDur" type="number" inputmode="numeric" min="0" style="${inp}"></div>
+    <div class="row"><span>RPE (1 à 10)</span><input id="cRpe" type="number" inputmode="decimal" min="1" max="10" step="0.5" style="${inp}"></div>
+    <div class="row"><span>Dénivelé + (m)</span><input id="cDn" type="number" inputmode="numeric" min="0" placeholder="facultatif" style="${inp}"></div>
+    <div class="row"><span>Distance (km)</span><input id="cKm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="facultatif" style="${inp}"></div>
+    <div class="row"><span>Séance rapide (côtes, fractionné)</span><input id="cRap" type="checkbox"></div>
+    <button class="close" data-confirm="course">Enregistrer la course</button>
+    <button class="back" data-back="1">Retour</button>`;
+}
+function addCourse(){
+  const dur=parseFloat(document.getElementById('cDur').value)||0;
+  const rpe=parseFloat(document.getElementById('cRpe').value)||0;
+  const dn=parseFloat(document.getElementById('cDn').value)||0;
+  const km=parseFloat(document.getElementById('cKm').value)||0;
+  const rap=document.getElementById('cRap').checked;
+  const units=Math.round(dur*rpe);
+  if(!units){toast('Indique la durée et le RPE');return}
+  const cat=rap?{endurance:.5,puissance:.5}:(dn>=300?{endurance:.7,puissance:.3}:{endurance:1});
+  const sets=Math.max(1,Math.round(units/10));
+  const before=weekPct(W());
+  const w=W(); w.extra=w.extra||[];
+  const id='x'+Date.now().toString(36);
+  const s={id,name:`Course ${km?km+' km · ':''}${dur} min`,day:sm.day,extra:true,log:true,replaces:null,times:1,cat,units,base:[{name:'Course',sets,reps:1,kg:0}],credits:{},exos:[]};
+  w.extra.push(s); w.done[id]=true;
+  rebuild(w,s);
+
+  save(); render();
+  const after=weekPct(W());
+  const catTxt=Object.entries(cat).map(([k,v])=>`${k} ${String(v).replace('.',',')}`).join(' · ');
+  document.getElementById('modal').innerHTML=`<h2>Course enregistrée</h2>
+    <div class="row"><span>Durée</span><span>${dur} min</span></div>
+    <div class="row"><span>RPE</span><span>${rpe}</span></div>
+    ${dn?`<div class="row"><span>Dénivelé +</span><span>${dn} m</span></div>`:''}
+    ${km?`<div class="row"><span>Distance</span><span>${km} km</span></div>`:''}
+    <div class="row"><span>Unités de charge</span><span>${units}</span></div>
+    <div class="row"><span>Séries créditées</span><span>${sets}</span></div>
+    <div class="row"><span>Répartition</span><span>${catTxt}</span></div>
+    <div class="row"><span>Objectif semaine</span><span>${before.pct}% → ${after.pct}%</span></div>
+    <button class="close" data-close="1">Fermer</button>`;
+  document.getElementById('ov').classList.add('show');
+}
+function bonusOf(s){const tot=(s.exos||[]).reduce((a,e)=>a+e.sets,0); const cr=Object.values(s.credits||{}).reduce((a,n)=>a+n,0); return Math.max(0,tot-cr)}
+function openMove(id){
+  const s=sessions(W()).find(x=>x.id===id); if(!s) return;
+  const reserved=isJudoS(s)?[]:jDays();
+  document.getElementById('modal').innerHTML=`<h2>Reporter « ${esc(s.name)} »</h2>
+    <div class="muted" style="margin-bottom:6px">Choisis le nouveau jour</div>
+    ${[0,1,2,3,4,5,6].filter(d=>d!==s.day&&!reserved.includes(d)).map(d=>`<button class="opt" data-moveto="${id}:${d}">${dayL(d)}</button>`).join('')}
+    <button class="back" data-close="1">Annuler</button>`;
+  document.getElementById('ov').classList.add('show');
+}
+function moveSession(id,d){
+  const w=W(); w.moved=w.moved||{}; w.pinned=w.pinned||{};
+  const ex=(w.extra||[]).find(x=>x.id===id);
+  const sx=sessions(w).find(x=>x.id===id);
+  if(sx&&!isJudoS(sx)&&jDays().includes(d)){ toast(T('Jour réservé au judo')); return; }
+  if(ex){ ex.day=d; } else { w.moved[id]=d; w.pinned[id]=d; }
+  save(); closeOv(); render(); toast('Séance reportée');
+}
+function journalSession(w,id){
+  const sess=sessions(w).find(x=>x.id===id); if(!sess) return;
+  data.journal=data.journal||[];
+  const when=new Date().toISOString();
+  sess.exos.forEach(e=>{
+    const n=Math.min(w.sets[e.id]||0,e.sets); if(!n) return;
+    data.journal.push({date:when,week:w.key||'',session:sess.name,exo:e.name,sets:n,reps:n*(e.reps||1),kg:Math.round(n*(e.reps||1)*(e.kg||0))});
+  });
+}
+const META={'Back squat':['jambes','force'],'Front squat':['jambes','force'],'Soulevé de terre':['jambes','force'],'Soulevé trap bar':['jambes','force'],'Soulevé de terre roumain':['jambes','élongation'],'Fentes bulgares':['jambes','force'],'Nordic curl':['jambes','élongation'],'Power clean':['full','puissance'],'Hang clean':['full','puissance'],'Power snatch':['full','puissance'],'Snatch':['full','puissance'],'Push press':['poussée','puissance'],'Sauts pliométriques':['jambes','puissance'],'Box jumps':['jambes','puissance'],'Bench press':['poussée','force'],'Incline bench press':['poussée','force'],'Développé militaire':['poussée','force'],'Pompes lestées':['poussée','endurance'],'Rowing barre':['tirage','force'],'Tractions lestées':['tirage','force'],'Russian twist':['tronc','endurance'],'Gainage':['tronc','endurance'],'Gainage latéral':['tronc','endurance'],'Fractionné course':['cardio','endurance'],'Fractionné vélo':['cardio','endurance'],'Burpees':['full','endurance'],'Thrusters':['full','force'],'Lat pull-down':['tirage','force'],'Pinch plate':['tronc','endurance'],'Kickback poulie':['jambes','force'],'Biceps curl':['bras','force'],'Easy run':['cardio','endurance'],'Threshold':['cardio','endurance'],'Long run':['cardio','endurance'],'Élévation mollets':['jambes','force'],'Step-up':['jambes','force'],'Fentes marchées':['jambes','endurance'],'Montées de genoux':['tronc','endurance'],'Pas chassés':['jambes','endurance'],'Course en côte':['cardio','puissance'],'Sledge pull':['full','force'],'Plate core rotation':['tronc','puissance'],'Pompes':['poussée','endurance'],'Dips':['poussée','force'],'Développé incliné haltères':['poussée','force'],'Face pull':['tirage','endurance'],'Tirage horizontal':['tirage','force'],'Hip thrust':['jambes','force'],'Goblet squat':['jambes','force'],'Good morning':['jambes','force'],'Soulevé de terre unilatéral':['jambes','force'],'Pont fessier':['jambes','endurance'],'Dead bug':['tronc','endurance'],'Bird dog':['tronc','endurance'],'Mountain climbers':['tronc','endurance'],'Relevé de jambes suspendu':['tronc','force'],'Suspension (dead hang)':['tronc','endurance'],'Farmer carry':['full','endurance'],'Sandbag carry':['full','endurance'],'Bear crawl':['full','endurance'],'Montée de corde':['full','force'],'Strides (accélérations)':['cardio','puissance'],'Kettlebell swing':['full','puissance'],'Medicine ball slam':['full','puissance'],'Sled push':['jambes','puissance'],'Uchi-komi':['full','endurance'],'Randori':['full','endurance']};
+const QCAT={force:'force',puissance:'puissance',endurance:'endurance','élongation':'endurance'};
+function scoreOf(src,cand,cat){
+  const a=META[src], b=META[cand]; if(!a||!b) return 0;
+  return (a[0]===b[0]?2:0)+(a[1]===b[1]?1:0)+(QCAT[b[1]]===cat?1:0);
+}
+function equivalentFor(name,cat){
+  if(!META[name]) return name;
+  let best=name, bs=0;
+  catalog().forEach(c=>{const sc=scoreOf(name,c.name,cat); if(sc>bs){bs=sc;best=c.name;}});
+  return bs>=2?best:name;
+}
+function askDelete(id){
+  const s=sessions(W()).find(x=>x.id===id); if(!s) return;
+  document.getElementById('cfT').textContent='Supprimer cette séance ?';
+  document.getElementById('cfM').textContent='La charge de cette séance sera réintégrée aux différentes autres séances restantes.';
+  const others=sessions(W()).filter(x=>!x.log && !W().done[x.id] && x.id!==id && TPL().some(t=>t.id===x.id));
+  if(!others.length){
+    document.getElementById('cfT').textContent='Dernière séance prévue';
+    document.getElementById('cfM').textContent='Il ne reste aucune autre séance cette semaine. Tu peux la replanifier à un autre jour.';
+    document.getElementById('cfYes').textContent='Replanifier';
+    document.getElementById('cfYes').onclick=()=>{hideCf();openMove(id)};
+  } else {
+    document.getElementById('cfYes').textContent='Supprimer';
+    document.getElementById('cfYes').onclick=()=>{hideCf();doDelete(id)};
+  }
+  document.getElementById('cfNo').onclick=hideCf;
+  document.getElementById('cf').classList.add('show');
+}
+function hideCf(){document.getElementById('cf').classList.remove('show')}
+function doDelete(id){
+  const w0=W(); const s0=sessions(w0).find(x=>x.id===id);
+  if(!s0||w0.done[id]||s0.exos.some(e=>(w0.sets[e.id]||0)>0)) return;
+  const w=W(); const all=sessions(w);
+  const s=all.find(x=>x.id===id); if(!s) return;
+  const pend=isJudoS(s)?[]:all.filter(x=>!x.log && !w.done[x.id] && x.id!==id && !isJudoS(x) && TPL().some(t=>t.id===x.id)).sort((a,b)=>a.day-b.day); const tgt=pend[0];
+  w.removed=w.removed||{}; w.removed[id]=true;
+  if(tgt){
+    w.addons=w.addons||{};
+    const stamp=Date.now().toString(36);
+    s.exos.forEach((e,i)=>{
+      let best=null, bs=-1;
+      pend.forEach(p=>{const cat=catOf(p); const nm=equivalentFor(e.name,cat); const sc=scoreOf(e.name,nm,cat); if(sc>bs){bs=sc; best={p,nm};}});
+      if(!best) return;
+      w.addons[best.p.id]=w.addons[best.p.id]||[];
+      const cg=catalog().find(c=>c.name===best.nm);
+      w.addons[best.p.id].push({id:'rw'+stamp+i,name:best.nm,sets:e.sets,reps:e.reps,kg:cg?cg.kg:0});
+    });
+  }
+  save(); runRecalc(true);
+  toast(tgt?'Séance supprimée, charge reprise':(isJudoS(s)?'Séance supprimée, charge reportée sur les séances restantes':'Séance supprimée'));
+}
+function weekPct(w){
+  const ALL=sessions(w).filter(s=>!s.log);
+  const isPlan=s=>!s.extra||!!s.replaces;
+  const totP=ALL.filter(isPlan).reduce((a,s)=>a+planned(s),0);
+  const totD=ALL.reduce((a,s)=>a+doneSets(s,w),0)+sessions(w).filter(s=>s.log).reduce((a,s)=>a+bonusOf(s),0);
+  return {totP,totD,pct:totP?Math.round(totD/totP*100):0};
+}
+const GOAL_MSG={maintien:'Maintien : option la plus stable pendant un bloc d’entraînement chargé.',prise:'Prise de masse : surveille ton poids par rapport à ta catégorie visée, et vérifie que la masse gagnée reste fonctionnelle (force et puissance).',seche:'Sèche : un déficit peut réduire la progression en force et en puissance et allonger la récupération. Confirme ce déficit avec un diététicien.'};
+function warnFor(goal,w,cat,orient,sp,cr){
+  const parts=[]; if(GOAL_MSG[goal]) parts.push(TX(GOAL_MSG[goal]));
+  if(cat&&w){
+    if(goal===TX('prise')&&w>=cat-1) parts.push(data.lang==='en'?`Your weight is close to your target category (${cat} kg): gaining mass may move you away from it.`:`Ton poids est proche de ta catégorie visée (${cat} kg) : une prise de masse peut t’en éloigner.`);
+    if(goal===TX('seche')&&w<=cat) parts.push(data.lang==='en'?`You are already in your target category (${cat} kg): check that cutting is still needed.`:`Tu es déjà dans ta catégorie visée (${cat} kg) : vérifie que la sèche est encore nécessaire.`);
+  }
+  if(goal===TX('seche')&&orient===TX('judo')) parts.push(TX('Pendant la préparation judo, un déficit doit rester encadré pour ne pas nuire à la force et à la récupération.'));
+  if(orient==='rfTX(') parts.push(')Repère OMS (Lignes directrices sur l’activité physique et la sédentarité) : 150 à 300 minutes d’activité aérobie d’intensité modérée par semaine, ou 75 à 150 minutes d’intensité soutenue, plus du renforcement musculaire au moins 2 jours par semaine.');
+  if(orient===TX('course')){
+    const CR={'10k':TX('10 km : volume hebdomadaire en kilomètres, une sortie longue par semaine et du travail au seuil.'),'semi':TX('Semi-marathon : volume hebdomadaire en kilomètres, sortie longue progressive et travail au seuil.'),'marathon':TX('Marathon : volume hebdomadaire en kilomètres avec une sortie longue, hausse limitée à environ 10 % par semaine.')};
+    parts.push(CR[cr]||TX('Choisis une distance visée.'));
+  }
+  if(orient===TX('spartan')){
+    const SP={sprint:TX('Sprint : 5 km, environ 20 obstacles.'),super:TX('Super : 10 km, environ 25 obstacles.'),beast:TX('Beast : 21 km, environ 30 obstacles.'),ultra:TX('Ultra : 50 km, environ 60 obstacles.')};
+    parts.push((SP[sp]||TX('Choisis un format Spartan.'))+TX(' Un obstacle raté peut entraîner une pénalité (30 burpees dans les courses compétitives) : travaille la technique et la force de préhension.'));
+  }
+  if(orient===TX('course')){
+    const CM={'10k':TX('10 km : 3 sorties par semaine, dont une sortie longue d’environ 60 à 75 min et une séance de seuil ou de fractionné.'),'semi':TX('Semi-marathon : 3 à 4 sorties par semaine, sortie longue d’environ 90 à 120 min.'),'marathon':TX('Marathon : 4 sorties par semaine, sortie longue d’environ 150 à 180 min. Hausse de volume limitée à environ 10 % par semaine, avec une semaine de décharge toutes les 4 semaines.')};
+    parts.push(CM[sp]||TX('Choisis une distance.'));
+  }
+  return parts.join(' ');
+}
+const JM=[60,66,73,81,90,100], JW=[48,52,57,63,70,78];
+function judoLimit(sex,w){ if(!w) return 0; const L=sex==='f'?JW:JM; for(const c of L){ if(w<=c) return c; } return L[L.length-1]; }
+function judoLabel(sex,w){ if(!w) return ''; const L=sex==='f'?JW:JM; for(const c of L){ if(w<=c) return '-'+c+' kg'; } return '+'+L[L.length-1]+' kg'; }
+function fillSub(o,sx,w){
+  const sel=document.getElementById('pSub'), row=document.getElementById('pSubRow'), lbl=document.getElementById('pSubLbl');
+  let opts=[], label=TX('Sous-programme');
+  if(o==='judo'){ const L=sx==='f'?[48,52,57,63,70,78]:[60,66,73,81,90,100]; opts=L.map((c,i)=>[String(c), i===L.length-1?'+'+c+' kg':'-'+c+' kg']); label=TX('Catégorie de poids'); }
+  else if(o==='course'){ opts=[['10k',TX('10 km')],['semi',TX('Semi-marathon')],['marathon',TX('Marathon')]]; label=TX('Distance'); }
+  else if(o==='rf'){ opts=[['maintien',TX('Maintien')],['prise',TX('Prise de masse')],['seche',TX('Sèche')]]; label=TX('Objectif'); }
+  else if(o==='spartan'){ opts=[['sprint','5K'],['super','10K'],['beast','21K'],['ultra','50K']]; label=TX('Format Spartan'); }
+  row.style.display=opts.length?'flex':'none'; lbl.textContent=label;
+  const key=o+'|'+sx;
+  if(sel.dataset.k===key) return;
+  sel.dataset.k=key;
+  sel.innerHTML=opts.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+  if(o==='judo'&&w) sel.value=String(judoLimit(sx,w));
+}
+function updWarn(){
+  const w=parseFloat(document.getElementById('pW').value)||0, sx=document.getElementById('pSex').value, o=document.getElementById('pOr').value;
+  fillSub(o,sx,w);
+  const isRf=o==='rf';
+  document.getElementById('pGRow').style.display=(o==='rf'||o==='spartan')?'none':'flex';
+  document.getElementById('pJMRow').style.display=o==='judo'?'flex':'none';
+  document.getElementById('pJDRow').style.display=o==='judo'?'flex':'none';
+  if(isRf) document.getElementById('pG').value=document.getElementById('pSub').value;
+  const g=document.getElementById('pG').value;
+  const sub=document.getElementById('pSub').value, c=o==='judo'?parseFloat(sub)||0:0;
+  const t=warnFor(g,w,c,o,sub), el=document.getElementById('pWarn');
+  el.textContent=t; el.style.display=t?'block':'none';
+}
+let ntMode='form';
+function nutri(sid){
+  const p=data.profile; if(!p||!p.w||!p.h||!p.a) return null;
+  // Besoin de base : métabolisme de base (Mifflin-St Jeor) × 1,2 (activité quotidienne hors séances)
+  const bmr=10*p.w+6.25*p.h-5*p.a+(p.sex==='h'?5:-161);
+  const base=Math.round(bmr*1.2);
+  // Dépense des séances validées du jour de la séance (les jours précédents n'ont pas d'effet sur le besoin du jour)
+  const w=W(); const sx=sid?sessions(w).find(x=>x.id===sid):null; const dayIdx=sx?sx.day:todayIdx;
+  const dayEx=sessions(w).filter(s=>w.done[s.id]&&s.day===dayIdx).reduce((a,s)=>a+expendOf(s.id),0);
+  const adj={maintien:0,prise:300,seche:-400}[p.goal]||0;
+  const kcal=Math.round((base+dayEx+adj)/10)*10;
+  const prot=Math.round(p.w*1.8);
+  const fat=Math.round(kcal*0.27/9);
+  const carb=Math.round((kcal-prot*4-fat*9)/4);
+  return {kcal,kj:Math.round(kcal*4.184),prot,fat,carb,base,dayEx};
+}
+function openPersonal(){
+  const p=data.profile||{};
+  ntMode='form';
+  document.getElementById('ntb').innerHTML=`<h3>${TX('Profil')}</h3>
+    <div class="row"><span>${TX('Sexe')}</span><select id="pSex"><option value="h" ${p.sex==='h'?'selected':''}>${TX('Homme')}</option><option value="f" ${p.sex==='f'?'selected':''}>${TX('Femme')}</option></select></div>
+    <div class="row"><span>${TX('Âge')}</span><input id="pAge" type="number" inputmode="numeric" value="${p.a||''}"></div>
+    <div class="row"><span>${TX('Taille (cm)')}</span><input id="pH" type="number" inputmode="numeric" value="${p.h||''}"></div>
+    <div class="row"><span>${TX('Poids (kg)')}</span><input id="pW" type="number" inputmode="decimal" step="0.1" value="${p.w||''}"></div>
+    <div style="height:18px"></div>
+    <h3 style="margin-top:14px">${TX('Objectif')}</h3>
+        <div class="row"><span>${TX('Plan d’entraînement')}</span><select id="pOr"><option value="judo" ${!p.orient||p.orient==='judo'?'selected':''}>${TX('Préparation judo')}</option><option value="rf" ${p.orient==='rf'?'selected':''}>${TX('Remise en forme')}</option><option value="course" ${p.orient==='course'?'selected':''}>${TX('Course à pied')}</option><option value="spartan" ${p.orient==='spartan'?'selected':''}>${TX('Spartan Race')}</option></select></div>
+        
+        
+        <div class="row" id="pCrRow" style="display:none"><span>${TX('Distance visée')}</span><select id="pCr"><option value="10k" ${p.course==='10k'?'selected':''}>${TX('10 km')}</option><option value="semi" ${p.course==='semi'?'selected':''}>${TX('Semi-marathon')}</option><option value="marathon" ${p.course==='marathon'?'selected':''}>${TX('Marathon')}</option></select></div>
+        <div class="row" id="pJMRow" style="display:none"><span>${TX('Mode judo')}</span><select id="pJM"><option value="hors">${TX('Non compétitif')}</option><option value="comp">${TX('Compétitif')}</option></select></div>
+    <div class="row" id="pGRow"><span>${TX('Objectif')}</span><select id="pG"><option value="maintien" ${p.goal==='maintien'?'selected':''}>${TX('Maintien')}</option><option value="prise" ${p.goal==='prise'?'selected':''}>${TX('Prise de masse')}</option><option value="seche" ${p.goal==='seche'?'selected':''}>${TX('Sèche')}</option></select></div>
+        
+    <div class="row" id="pSubRow" style="display:flex"><span id="pSubLbl">${TX('Sous-programme')}</span><select id="pSub"></select></div>
+    <div class="row" id="pJDRow" style="display:none"><span>${TX('Séances judo / semaine')}</span><button type="button" id="pJDN" class="jdbadge" aria-label="Choisir les jours de judo" aria-expanded="false"></button></div>
+    <div id="pJDays" style="display:none"></div>
+    <div id="pWarn" class="warn2" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="hb" id="pCancel" style="flex:1">${TX('Fermer')}</button><button class="hb" id="pSave" style="flex:1;background:var(--acc);color:var(--accTxt);border-color:var(--accInk)">${TX('Enregistrer')}</button></div>`;
+  document.getElementById('nt').classList.add('show');
+  document.getElementById('pSave').onclick=savePersonal;
+  ['pG','pW','pSex','pOr','pSub','pJM'].forEach(i=>{const el=document.getElementById(i); el.addEventListener('input',updWarn); el.addEventListener('change',updWarn);});
+  jdSel=Array.isArray(p.judoDays)?p.judoDays.slice():[5];
+  document.getElementById('pJDN').onclick=()=>{const el=document.getElementById('pJDays'); const open=el.style.display!=='flex'; el.style.display=open?'flex':'none'; document.getElementById('pJDN').setAttribute('aria-expanded',open);};
+  document.getElementById('pJDays').onclick=e=>{const b=e.target.closest('[data-jd]'); if(b) toggleJD(+b.dataset.jd);};
+  updWarn(); if(p.sub) document.getElementById('pSub').value=p.sub; if(p.jm) document.getElementById('pJM').value=p.jm; updWarn(); renderJD();
+  document.getElementById('pCancel').onclick=()=>document.getElementById('nt').classList.remove('show');
+}
+let jdSel=[5];
+function renderJD(){
+  const el=document.getElementById('pJDays'); if(!el) return;
+  const L=[0,1,2,3,4,5,6].map(dayL);
+  el.innerHTML=L.map((l,i)=>`<button type="button" class="jdc${jdSel.includes(i)?' on':''}" data-jd="${i}">${l}</button>`).join('');
+  document.getElementById('pJDN').textContent=jdSel.length;
+}
+function toggleJD(d){
+  if(jdSel.includes(d)) jdSel=jdSel.filter(x=>x!==d);
+  else jdSel.push(d);
+  renderJD();
+}
+function savePersonal(){
+  const v=id=>document.getElementById(id).value;
+  const o=v('pOr'), sb=v('pSub');
+  const prevO=(data.profile||{}).orient||'judo';
+  data.profile={sex:v('pSex'),a:parseInt(v('pAge'),10)||0,h:parseFloat(v('pH'))||0,w:parseFloat(v('pW'))||0,goal:o==='rf'?sb:v('pG'),orient:o,sub:sb,cat:o==='judo'?(parseFloat(sb)||0):0,course:o==='course'?sb:'10k',spartan:o==='spartan'?sb:'sprint',jm:v('pJM')||'hors',judoDays:jdSel.slice()};
+  save(); document.getElementById('nt').classList.remove('show'); runRecalc(prevO!==o);
+}
+const FOODS={
+  oeuf:{n:'Œufs',k:143,p:12.6,c:0.7,f:9.5,u:50},
+  skyr:{n:'Skyr',k:63,p:11,c:4,f:0.2},
+  fromage_blanc:{n:'Fromage blanc 0 %',k:46,p:8,c:4,f:0.2},
+  tofu:{n:'Tofu ferme',k:144,p:17,c:3,f:9},
+  poulet:{n:'Poulet (blanc, cuit)',k:165,p:31,c:0,f:3.6},
+  poisson:{n:'Cabillaud (cuit)',k:105,p:23,c:0,f:0.9},
+  saumon:{n:'Saumon (cuit)',k:206,p:22,c:0,f:12},
+  thon:{n:'Thon au naturel',k:116,p:26,c:0,f:1},
+  boeuf:{n:'Bœuf haché 5 %',k:137,p:21,c:0,f:5},
+  lentilles:{n:'Lentilles cuites',k:116,p:9,c:20,f:0.4},
+  pois_chiches:{n:'Pois chiches cuits',k:139,p:7,c:22,f:2.6},
+  riz:{n:'Riz cuit',k:130,p:2.7,c:28,f:0.3},
+  pates:{n:'Pâtes cuites',k:131,p:5,c:25,f:1.1},
+  quinoa:{n:'Quinoa cuit',k:120,p:4.4,c:21,f:1.9},
+  pdt:{n:'Pomme de terre cuite',k:77,p:2,c:17,f:0.1},
+  patate_douce:{n:'Patate douce cuite',k:90,p:2,c:21,f:0.2},
+  flocons:{n:'Flocons d’avoine',k:370,p:13,c:60,f:7},
+  pain:{n:'Pain complet',k:250,p:9,c:45,f:3.5},
+  banane:{n:'Banane',k:89,p:1.1,c:23,f:0.3},
+  pomme:{n:'Pomme',k:52,p:0.3,c:14,f:0.2},
+  fruits_rouges:{n:'Fruits rouges',k:50,p:1,c:12,f:0.3},
+  brocoli:{n:'Brocoli cuit',k:35,p:2.4,c:7,f:0.4},
+  haricots:{n:'Haricots verts cuits',k:35,p:2,c:7,f:0.2},
+  epinards:{n:'Épinards cuits',k:23,p:3,c:3.8,f:0.3},
+  courgette:{n:'Courgette cuite',k:17,p:1.2,c:3,f:0.3},
+  huile:{n:'Huile d’olive',k:884,p:0,c:0,f:100},
+  avocat:{n:'Avocat',k:160,p:2,c:9,f:15},
+  amandes:{n:'Amandes',k:579,p:21,c:22,f:50},
+  beurre_cacahuete:{n:'Beurre de cacahuète',k:588,p:25,c:20,f:50},
+  dinde:{n:'Dinde (blanc, cuit)',k:157,p:30,c:0,f:3.2},
+  cabillaud_vapeur:{n:'Cabillaud (vapeur)',k:90,p:20,c:0,f:0.8},
+  seitan:{n:'Seitan',k:370,p:75,c:14,f:2},
+  sardines:{n:'Sardines (à l’huile, égouttées)',k:200,p:25,c:0,f:11},
+  sarrasin:{n:'Sarrasin cuit',k:92,p:3.4,c:20,f:0.6},
+  boulgour:{n:'Boulgour cuit',k:83,p:3.1,c:18.6,f:0.2},
+  riz_complet:{n:'Riz complet cuit',k:123,p:2.7,c:26,f:1},
+  semoule:{n:'Semoule cuite',k:112,p:3.8,c:23,f:0.2},
+  poivron:{n:'Poivron cuit',k:26,p:1,c:6,f:0.3},
+  asperges:{n:'Asperges cuites',k:20,p:2.2,c:3.9,f:0.1},
+  chou_fleur:{n:'Chou-fleur cuit',k:25,p:1.9,c:5,f:0.3},
+  noix:{n:'Noix',k:654,p:15,c:14,f:65},
+  graines_courge:{n:'Graines de courge',k:559,p:30,c:11,f:49},
+  olives:{n:'Olives vertes',k:145,p:1,c:4,f:15},
+  fruits_secs:{n:'Abricots secs',k:241,p:3.4,c:63,f:0.5},
+  kiwi:{n:'Kiwi',k:61,p:1.1,c:15,f:0.5},
+  orange:{n:'Orange',k:47,p:0.9,c:12,f:0.1}
+};
+const ROLES={
+  // Substituts : aliments d'un même rôle aux valeurs voisines (protéines, glucides, lipides, légumes)
+  Matin:{prot:['oeuf','skyr','fromage_blanc','tofu','seitan'],carb:['flocons','pain','banane','pomme','kiwi','orange','fruits_secs','sarrasin'],veg:null,fat:['amandes','beurre_cacahuete','noix','graines_courge']},
+  Midi:{prot:['poulet','dinde','poisson','cabillaud_vapeur','saumon','thon','sardines','boeuf','lentilles','pois_chiches','tofu','seitan'],carb:['riz','riz_complet','pates','quinoa','pdt','boulgour','semoule','sarrasin'],veg:['brocoli','haricots','epinards','courgette','poivron','asperges','chou_fleur'],fat:['huile','avocat','olives','noix']},
+  Soir:{prot:['poisson','cabillaud_vapeur','poulet','dinde','thon','sardines','lentilles','tofu','seitan'],carb:['patate_douce','riz','riz_complet','quinoa','pdt','boulgour','semoule'],veg:['brocoli','haricots','epinards','courgette','poivron','asperges','chou_fleur'],fat:['huile','avocat','olives','noix']},
+  Collation:{prot:['fromage_blanc','skyr','oeuf'],carb:['pomme','banane','fruits_rouges','kiwi','orange'],veg:null,fat:['amandes','noix','graines_courge']}
+};
+// Builds one meal from the food bank, to reach the energy and protein targets
+function menuFor(slot,kcal,prot,seed,recent){
+  const R=ROLES[slot]; const rc=new Set(recent||[]);
+  const pick=(l,i)=>{ const n=l.length; for(let j=0;j<n;j++){ const id=l[(seed+i+j)%n]; if(!rc.has(id)) return FOODS[id]; } return FOODS[l[(seed+i)%n]]; };
+  const items=[]; let k=0, p=0;
+  const pf=pick(R.prot,0); const gp=Math.min(260,Math.max(60,Math.round(prot/(pf.p/100))));
+  items.push({f:pf,g:gp}); k+=gp*pf.k/100; p+=gp*pf.p/100;
+  if(R.veg){ const vf=pick(R.veg,2); items.push({f:vf,g:150}); k+=150*vf.k/100; p+=150*vf.p/100; }
+  if(R.fat){ const ff=pick(R.fat,3); const gf=ff.n.startsWith('Huile')?10:20; items.push({f:ff,g:gf}); k+=gf*ff.k/100; p+=gf*ff.p/100; }
+  const cf=pick(R.carb,1); const remK=Math.max(0,kcal-k); const gc=Math.min(400,Math.max(30,Math.round(remK/(cf.k/100))));
+  items.push({f:cf,g:gc}); k+=gc*cf.k/100; p+=gc*cf.p/100;
+  return {items,kcal:Math.round(k),prot:Math.round(p)};
+}
+function mealsHtml(n,key){
+  let h=0; for(const ch of String(key||'')) h=(h*31+ch.charCodeAt(0))>>>0;
+  const recent=(data.menuRecent||[]).slice(-12); const picked=[]; let i=0;
+  const html=Object.entries(MREF_R).map(([name,r])=>{
+    const m=menuFor(name,n.kcal*r,n.prot*r,h+(i++)*7,[...recent,...picked]);
+    m.items.forEach(({f})=>{ const id=Object.keys(FOODS).find(k=>FOODS[k]===f); if(id) picked.push(id); });
+    const lines=m.items.map(({f,g})=>{ const q=f.u?`${Math.max(1,Math.round(g/f.u))} pcs`:`${g} g`; return `<div style="font-size:12px;color:var(--mut);padding-left:10px;margin-bottom:6px">${f.n} : ${q}</div>`; }).join('');
+    return `<div class="row" style="margin-top:8px;align-items:center"><span style="display:flex;align-items:center;gap:8px"><button type="button" class="mini" data-meal="1" style="width:17px;height:17px;min-width:17px;min-height:17px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box;flex:0 0 auto;font-size:10px">▾</button>${name}</span><span>${m.kcal} kcal · ${m.prot} g prot.</span></div><div class="mealFoods" style="display:none;margin:10px 0 12px 4px">${lines}</div>`;
+  }).join('');
+  data.menuRecent=[...(data.menuRecent||[]),...picked].slice(-40);
+  return html;
+}
+const MREF_R={'Matin':.25,'Midi':.35,'Soir':.30,'Collation':.10};
+function expendOf(sid){
+  const w=W(); const sx=sessions(w).find(x=>x.id===sid); if(!sx) return 0;
+  const wt=(data.profile&&data.profile.w)||70; const n=sx.name.toLowerCase();
+  if(sx.log && sx.units) return Math.round(sx.units*2);
+  const tot=sx.exos.reduce((a,e)=>a+e.sets,0); const done=sx.exos.reduce((a,e)=>a+Math.min(w.sets[e.id]||0,e.sets),0);
+  if(!tot||!done) return 0;
+  if(sx.exos.some(e=>e.km)) return Math.round(sx.exos.reduce((a,e)=>a+(e.km||0)*Math.min(w.sets[e.id]||0,e.sets)/Math.max(1,e.sets),0)*wt);
+  const met=n.includes('judo')?9:n.includes('puissance')?6:n.includes('force')?5:6;
+  return Math.round(met*wt*(sessDur(sx)/60)*(done/tot));
+}
+function showNutriNotif(sid){
+  const n=nutri(sid); ntMode='notif';
+  const ex=sid?expendOf(sid):0;
+  const p=data.profile||{}; const wm=warnFor(p.goal,p.w,p.cat,p.orient,p.spartan,p.course); const wHtml=wm?`<div class="warn2">${esc(wm)}</div>`:'';
+  const body=n?`${ex?`<div class="row"><span>Dépense de la séance</span><span>${ex} kcal</span></div>`:''}<div class="row"><span>Besoin journalier</span><span>${n.kcal} kcal · ${n.kj} kJ</span></div>
+    <div class="row"><span>Protéines</span><span>${n.prot} g</span></div>
+    <div class="row"><span>Glucides</span><span>${n.carb} g</span></div>
+    <div class="row"><span>Lipides</span><span>${n.fat} g</span></div>
+    <div class="row" style="align-items:center;margin-top:10px"><span>Repas conseillé</span><button type="button" class="mini" data-split="1" style="width:24px;height:24px;min-width:24px;min-height:24px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box;flex:0 0 auto;font-size:14px">▾</button></div><div id="splitBody" style="display:none">${mealsHtml(n,(sid||'')+fmt(new Date()))}</div>`:`<div class="muted">Renseigne ton profil (Réglages › Personnel) pour voir tes besoins.</div>`;
+  document.getElementById('ntb').innerHTML=`<h3>Séance validée</h3>${body}${wHtml}<div class="muted" style="text-align:center;margin-top:12px;font-size:12px">Touche l’écran pour fermer</div>`;
+  document.getElementById('nt').classList.add('show');
+}
+document.getElementById('nt').addEventListener('click',e=>{ const mb=e.target.closest('[data-meal]'); if(mb){ const d=mb.closest('.row').nextElementSibling; const open=d.style.display==='block'; d.style.display=open?'none':'block'; mb.textContent=open?'▾':'▴'; return; } const sp=e.target.closest('[data-split]'); if(sp){ const d=document.getElementById('splitBody'); const open=d.style.display==='block'; d.style.display=open?'none':'block'; sp.textContent=open?'▾':'▴'; return; } if(ntMode==='notif'||e.target.id==='nt') document.getElementById('nt').classList.remove('show'); });
+function openLang(){
+  document.getElementById('modal').innerHTML=`<h2>${T('Langue')}</h2>
+    <button class="opt" data-lang="fr">Français</button>
+    <button class="opt" data-lang="en">English</button>
+    <button class="back" data-back-settings="1">${T('Annuler')}</button>`;
+  document.getElementById('ov').classList.add('show');
+}
+function setLang(l){ data.lang=l; save(); render(); openSettings(); }
+const TR={'Mot de passe':'Password','Compte':'Account','Se connecter':'Sign in','Se déconnecter':'Sign out','Connecté':'Signed in','Code envoyé à':'Code sent to','Code':'Code','Adresse e-mail':'E-mail address','Recevoir le code':'Send code','Valider':'Confirm','Retour':'Back','Déconnecté':'Signed out','Données synchronisées':'Data synced','Synchronisation impossible, sauvegarde locale conservée':'Sync failed, local copy kept','Cette semaine':'This week','Semaine proposée':'Proposed week','Appliquer':'Apply','Garder':'Keep','Semaine inchangée':'Week unchanged','retirée, budget hebdomadaire atteint':'removed, weekly budget reached','Séance de judo':'Judo session','Judo':'Judo','Allure de seuil : effort soutenu, juste sous le seuil lactique, phrases courtes possibles.':'Threshold pace: sustained effort, just below lactate threshold, short sentences possible.','Échauffement de 10 minutes à allure facile':'10-minute warm-up at easy pace','Bloc soutenu à allure de seuil, sans accélérer':'Sustained block at threshold pace, no surging','Retour au calme de 10 minutes':'10-minute cool-down','Montées rapides en côte pour la puissance et la force des jambes. Efforts courts, récupération complète.':'Short fast hill climbs for leg power and strength. Short efforts, full recovery.','Départ en bas de côte, buste légèrement incliné':'Start at the foot of the hill, torso slightly leaned forward','Montée rapide en gardant la cadence et une foulée courte':'Climb fast, keeping cadence and a short stride','Descente lente, retour au bas de la côte pour récupérer':'Walk or jog slowly back down to recover','Sortie longue à allure facile, pour l’endurance et l’économie de course. Durée croissante au fil des semaines.':'Long easy run for endurance and running economy. Duration grows over the weeks.','Départ très progressif, premiers kilomètres lents':'Very gradual start, first kilometres slow','Allure constante, hydratation et alimentation si la sortie dépasse 60 min':'Steady pace; hydrate and fuel if the run exceeds 60 min','Fin de sortie contrôlée, sans accélération':'Controlled finish, no surge','Footing court à allure facile, conversation possible. Il construit la base du volume hebdomadaire et favorise la récupération.':'Short easy run at a comfortable pace, conversation possible. It builds the weekly volume base and aids recovery.','Départ progressif, 5 minutes de marche ou de trot':'Gradual start, 5 minutes of walking or easy jogging','Allure stable, respiration maîtrisée, foulée relâchée':'Steady pace, controlled breathing, relaxed stride','Retour au calme avec étirements légers':'Cool-down with light stretching','Maintien d’une plaque serrée entre les doigts et le pouce, pour la force de préhension et l’endurance des avant-bras.':'Holding a plate pinched between fingers and thumb, for grip strength and forearm endurance.','Plaque saisie à deux mains, pincée à la verticale':'Plate pinched with both hands, held vertically','Maintien du poids, épaules basses':'Hold the weight, shoulders down','Relâchement contrôlé, sans lâcher la plaque':'Controlled release, plate kept pinched','Montée de la corde avec les bras et les jambes, pour les obstacles Spartan et la préhension.':'Rope climb with arms and legs, for Spartan obstacles and grip.','Corde saisie, jambes enroulées ou en appui':'Rope gripped, legs wrapped or pressing','Traction des bras et montée par les jambes':'Pull with the arms and climb with the legs','Descente contrôlée, mains serrées':'Controlled descent, hands tight','Suspension libre à la barre, bras tendus, pour la préhension et la santé des épaules.':'Free hang from the bar, arms straight, for grip strength and shoulder health.','Prise pronation, bras tendus, épaules actives':'Overhand grip, arms straight, shoulders active','Maintien le plus longtemps possible, sans balancement':'Hold as long as possible, no swinging','Relâchement contrôlé':'Controlled release','Pas de séance ce jour.':'No session this day.','+ Ajouter une séance':'+ Add a session','Toutes les séances de la semaine sont validées ✓':'All sessions of the week are validated ✓','Ajouter une séance':'Add a session','Modifier la séance':'Edit session','Retour':'Back','Rétablir la séance prévue':'Restore planned session','Rétablir la séance prévue':'Restore planned session','Durée (min)':'Duration (min)','RPE (1 à 10)':'RPE (1 to 10)','Dénivelé + (m)':'Elevation gain (m)','Distance (km)':'Distance (km)','Séance rapide (côtes, fractionné)':'Fast session (hills, intervals)','Enregistrer la course':'Save run','Course enregistrée':'Run saved','Unités de charge':'Load units','Séries créditées':'Sets credited','Répartition':'Split','Objectif semaine':'Week goal','Dernière séance prévue':'Last planned session','Il ne reste aucune autre séance cette semaine. Tu peux la replanifier à un autre jour.':'No other session left this week. You can reschedule it to another day.','Supprimer cette séance ?':'Delete this session?','La charge de cette séance sera réintégrée aux différentes autres séances restantes.':'Its load will be redistributed to the other remaining sessions.','Choisis le nouveau jour':'Choose the new day','Séance reportée':'Session moved','Séance supprimée':'Session deleted','Séance ajoutée':'Session added','Exercice ajouté':'Exercise added','Exercice retiré':'Exercise removed','Séance retirée':'Session removed','Séance personnalisée enregistrée':'Custom session saved','Séance validée':'Session validated','Séance remise en cours':'Session reopened','Semaine recalculée':'Week recalculated','Charges recalculées':'Loads recalculated','Profil enregistré':'Profile saved','Indique au moins une série':'Enter at least one set','Indique la durée et le RPE':'Enter duration and RPE','Max des séries':'Max sets','Séries remises à 0':'Sets reset to 0','Profil':'Profile','Sexe':'Sex','Homme':'Male','Femme':'Female','Âge':'Age','Taille (cm)':'Height (cm)','Poids (kg)':'Weight (kg)','Sport pratiqué':'Sport','Plan d’entraînement':'Training plan','Catégorie visée (kg)':'Target category (kg)','Maintien':'Maintenance','Prise de masse':'Weight gain','Sèche':'Cutting','Préparation judo':'Judo preparation','Préparation marathon':'Marathon preparation','Format Spartan':'Spartan format','Historique':'History','Total poussé :':'Total lifted:','Aucune série enregistrée pour l’instant.':'No sets recorded yet.','Indique le nombre de séries pour chaque exercice':'Enter the number of sets for each exercise','Indique les séries effectuées pour chaque exercice':'Enter the sets performed for each exercise','Ajouter des exercices':'Add exercises','Ajouter à la séance':'Add to session','Enregistrer la séance':'Save session','Nombre de séances effectuées':'Sessions completed','Séries à effectuer':'Sets to perform','Commentaire':'Comment','Retirer cet exercice':'Remove this exercise','Pas encore de description pour cet exercice.':'No description yet for this exercise.','Départ':'Start','Phase centrale':'Middle phase','Fin du mouvement':'End of movement','Énergie':'Energy','Besoin journalier':'Daily requirement','Protéines':'Protein','Glucides':'Carbohydrates','Lipides':'Fat','Repas conseillé':'Suggested meals','Matin':'Morning','Midi':'Lunch','Soir':'Evening','Collation':'Snack','Touche l’écran pour fermer':'Tap the screen to close','Renseigne ton profil (Réglages › Personnel) pour voir tes besoins.':'Fill in your profile (Settings › Personal) to see your needs.','Saisis ton PR : les charges prévues sont recalculées en % selon les répétitions. Vide = charge de départ.':'Enter your PR: planned loads are recalculated as a % of it based on reps. Empty = starting load.','Maintien : option la plus stable pendant un bloc d’entraînement chargé.':'Maintenance: the most stable option during a heavy training block.','Sprint : 5 km, environ 20 obstacles.':'Sprint: 5 km, about 20 obstacles.','Super : 10 km, environ 25 obstacles.':'Super: 10 km, about 25 obstacles.','Beast : 21 km, environ 30 obstacles.':'Beast: 21 km, about 30 obstacles.','Ultra : 50 km, environ 60 obstacles.':'Ultra: 50 km, about 60 obstacles.','Choisis un format Spartan.':'Choose a Spartan format.','Pendant la préparation judo, un déficit doit rester encadré pour ne pas nuire à la force et à la récupération.':'During judo preparation, any deficit must stay supervised so it does not hurt strength and recovery.','Marathon : le volume hebdomadaire se pilote en kilomètres, avec une sortie longue par semaine. Hausse de volume limitée à environ 10 % par semaine.':'Marathon: weekly volume is managed in kilometres, with one long run per week. Volume increase limited to about 10% per week.','Ajouter':'Add','Course à pied':'Running','Entraînement judo':'Judo training','Séance crossfit':'Crossfit session','Séance personnalisée':'Custom session','Spartan Race':'Spartan Race','Judo':'Judo','Remise en forme':'Fitness','Préparation physique judo':'Judo physical preparation','Mode sombre':'Dark mode','Personnel':'Personal','Réglages':'Settings','Langue':'Language','Fermer':'Close','Annuler':'Cancel','Enregistrer':'Save','Ouvrir':'Open','Français':'Français','Valider':'Finish','Terminé':'Finished','Sledge pull':'Sledge pull','Plate core rotation':'Plate core rotation','Pompes':'Push-ups','Dips':'Dips','Développé incliné haltères':'Incline dumbbell press','Face pull':'Face pull','Tirage horizontal':'Seated row','Hip thrust':'Hip thrust','Goblet squat':'Goblet squat','Good morning':'Good morning','Soulevé de terre unilatéral':'Single-leg Romanian deadlift','Pont fessier':'Glute bridge','Dead bug':'Dead bug','Bird dog':'Bird dog','Mountain climbers':'Mountain climbers','Relevé de jambes suspendu':'Hanging leg raise','Suspension (dead hang)':'Dead hang','Farmer carry':'Farmer carry','Sandbag carry':'Sandbag carry','Bear crawl':'Bear crawl','Montée de corde':'Rope climb','Strides (accélérations)':'Strides','Kettlebell swing':'Kettlebell swing','Medicine ball slam':'Medicine ball slam','Sled push':'Sled push','Uchi-komi':'Uchi-komi','Randori':'Randori','Judo technique':'Judo technique','Élévation mollets':'Calf raises','Step-up':'Step-up','Fentes marchées':'Walking lunges','Montées de genoux':'High knees','Pas chassés':'Shuffles','Course en côte':'Hill sprints','Easy run':'Easy run','Threshold':'Threshold','Long run':'Long run','Préparation course (général)':'General running preparation','Distance visée':'Target distance','Semi-marathon':'Half marathon','Marathon':'Marathon'};
+function translateDom(){
+  if(!data||data.lang!=='en') return;
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT); const nodes=[];
+  while(w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach(n=>{ const p=n.parentElement; if(!p||p.closest('script,style')) return; const k=n.nodeValue.trim(); const v=TR[k]; if(v&&k!==v){ n.nodeValue=n.nodeValue.replace(k,v); } });
+}
+new MutationObserver(translateDom).observe(document.body,{childList:true,subtree:true,characterData:true});
+
+function openHelp(){
+  ntMode='form';
+  const H=t=>`<div style="margin:26px 0 10px;text-align:center"><span style="display:block;width:44px;height:2px;margin:0 auto 12px;border-radius:2px;background:var(--line)"></span><div style="font-family:Gilroy,Montserrat,sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accInk)">${t}</div></div>`;
+  const H2=t=>`<div style="font-weight:700;font-size:13px;margin:10px 0 4px;color:var(--mut)">${t}</div>`;
+  const P=t=>`<div style="font-size:13px;line-height:1.5;margin-bottom:6px">${t}</div>`;
+  const L=items=>`<ul style="margin:0 0 8px 18px;padding:0;font-size:13px;line-height:1.5">${items.map(i=>`<li style="margin-bottom:8px">${i}</li>`).join('')}</ul>`;
+  document.getElementById('ntb').innerHTML=`<h3>Aide</h3>
+  ${H('Vue d’ensemble')}
+  ${P('L’application prépare ta semaine selon ton plan. Elle prévoit les séances, mesure ce que tu réalises, puis réajuste les séances restantes de la semaine pour approcher l’objectif hebdomadaire.')}
+  ${L([
+   '<b>Plan</b> : tu choisis un programme (judo, course à pied, Spartan, remise en forme) dans les réglages.',
+   '<b>Semaine</b> : les séances prévues apparaissent dans le calendrier.',
+   '<b>Validation</b> : tu saisis les séries réalisées, puis tu valides la séance. La notification nutritionnelle affiche la dépense estimée.',
+   '<b>Recalcul</b> : il a lieu à la validation d’une séance, à l’ajout d’une séance ou d’un exercice, et à l’enregistrement du profil.'
+  ])}
+  ${H('Paramétrage')}
+  ${H2('Réglages généraux')}
+  ${L([
+   '<b>Mode sombre</b> : bascule l’affichage clair ou sombre.',
+   '<b>Langue</b> : français ou anglais, pour toute l’interface.'
+  ])}
+  ${H2('Profil')}
+  ${L([
+   '<b>Sexe, âge, taille, poids</b> : servent au calcul énergétique et au budget de charge (le poids intervient directement).',
+   '<b>Enregistrer</b> : met à jour le profil et recalcule la semaine. Voir la section suivante pour ce qui est proposé ou appliqué automatiquement.'
+  ])}
+  ${H2('Objectif et plan')}
+  ${L([
+   '<b>Plan d’entraînement</b> : judo, course à pied, Spartan ou remise en forme.',
+   '<b>Sous-programme</b> : précise le plan choisi (catégorie de poids en judo, distance en course, format en Spartan, objectif en remise en forme). Il adapte le volume et les efforts des séances.',
+   '<b>Mode judo</b> : non compétitif ou compétitif. En compétitif, le judo suit un cycle de 4 semaines et un bloc « Conditionnement » s’ajoute à la semaine ; le budget de charge augmente légèrement.',
+   '<b>Objectif</b> (maintien, prise de masse, sèche) : visible pour le judo, masqué pour le Spartan et la course. Il module le budget de charge (prise de masse plus élevé, sèche plus bas).',
+   '<b>Séances judo par semaine</b> : choisit les jours réservés au judo.'
+  ])}
+  ${H2('Changer de programme ou de sous-programme')}
+  ${L([
+   '<b>Changement de programme complet</b> (par exemple judo vers course) : la semaine est recalculée automatiquement, sans validation.',
+   '<b>Changement de sous-programme ou de réglage</b> (distance, catégorie, mode judo, objectif) : une fenêtre « Semaine proposée » liste les changements. <b>Appliquer</b> les accepte, <b>Garder</b> ne modifie rien.',
+   'Le recalcul porte sur la semaine en cours et les semaines suivantes. Les semaines passées ne sont pas modifiées.'
+  ])}
+  ${H2('Jours réservés au judo')}
+  ${L([
+   'Les jours de judo ne reçoivent aucune autre séance, qu’elle soit prévue, ajoutée ou recalculée. Le calendrier affiche uniquement la séance de judo ces jours-là.',
+   'Une séance déjà terminée garde son jour. Une séance non commencée qui tombait sur un jour de judo est déplacée automatiquement vers le jour libre le plus proche.',
+   'Dans le report d’une séance, les jours de judo ne sont pas proposés (sauf pour le judo lui-même).'
+  ])}
+  ${H2('Charges de référence (PR)')}
+  ${L([
+   'Saisis la charge, la durée ou la répétition de référence par exercice, rangée par catégorie.'
+  ])}
+  ${H('Organisation de la semaine')}
+  ${H2('Budget de charge')}
+  ${L([
+   'L’objectif hebdomadaire est un budget de charge, et non un nombre de séances. Il est calculé à partir de ton poids, de ton objectif et d’une semaine de référence (en judo : deux séances de judo, force et puissance).',
+   'Chaque exercice produit une charge combinant la dépense énergétique, la charge soulevée, le cardio, la technicité et la fatigue.',
+   'La barre affiche la charge consommée par rapport au budget. Les séances et exercices ajoutés en plus comptent dans la charge consommée : la barre peut dépasser 100 % et passe alors en doré.',
+   'Une série validée compte au prorata. Une séance partiellement réalisée compte pour ce qui est fait ; le reste est réintégré dans la semaine si le budget le permet.'
+  ])}
+  ${H2('Réduction des séances')}
+  ${L([
+   'Quand le budget est insuffisant, une séance restante n’est pas supprimée d’office : on retire d’abord les exercices non commencés (au moins 2 restent), puis on baisse les séries (au moins 2 par exercice).',
+   'Une séance n’est retirée que si le judo a consommé la totalité du budget. Une séance commencée n’est jamais retirée.',
+   'Une séance restante trop petite (moins de 4 séries, sans distance, non commencée) est fusionnée dans une autre séance restante.'
+  ])}
+  ${H2('Séance supprimée ou budget non atteint')}
+  ${L([
+   'Une séance de judo n’est pas modifiable : si tu la supprimes, ses exercices ne sont pas repris dans une autre séance de judo.',
+   'La charge non couverte est reportée sur les séances annexes (force, puissance, endurance) en augmentant leurs séries, dans la limite de 10 séries par exercice.',
+   'S’il reste une charge que les séances annexes ne peuvent pas absorber, une séance « Complément » est créée, dont la durée est calculée pour couvrir le reliquat.',
+   'Le but est que le budget total de la semaine corresponde au budget initial.'
+  ])}
+  ${H2('Règles de répartition')}
+  ${L([
+   'Les séances lourdes (force, puissance) sont espacées d’au moins deux jours.',
+   'Les exercices tournent d’une semaine à l’autre pour casser la monotonie.',
+   'Le calcul ne tient compte que de la semaine en cours : il n’y a ni report ni rattrapage d’une semaine sur l’autre. Un objectif non atteint reste incomplet.'
+  ])}
+  ${H2('Cycles')}
+  ${L([
+   'En compétition, le judo suit un cycle de 4 semaines : hypertrophie, force, puissance, puis décharge.',
+   'Les courses suivent un cycle de 4 semaines : volume de base, hausse, pic, décharge.'
+  ])}
+  ${H2('Programmes, sous-programmes et types de séances')}
+  ${P('Chaque programme propose ses propres types de séances. Le sous-programme en modifie le volume et les objectifs.')}
+  ${L([
+   '<b>Judo</b> : sous-programme = catégorie de poids. Types : force, puissance, judo, et conditionnement en mode compétitif.',
+   '<b>Course à pied</b> : sous-programme = distance (10 km, semi, marathon). Types : easy run, threshold, long run.',
+   '<b>Spartan</b> : sous-programme = format (5K, 10K, 21K, 50K). Types : course, obstacles, préhension, renforcement.',
+   '<b>Remise en forme</b> : sous-programme = objectif (maintien, prise de masse, sèche). Types : renforcement et activité aérobie.',
+   '<b>Crossfit</b> (hors programme) : séances A, B, C, ajoutées les jours libres.'
+  ])}
+  ${H('Historique')}
+  ${L([
+   'Le total poussé couvre toute la période d’utilisation, quel que soit le programme suivi.',
+   'Chaque série saisie est enregistrée avec son exercice, ses répétitions et sa charge au moment de la saisie. Un changement de programme ne modifie donc pas les totaux passés.',
+   'Les séries saisies avant cette mise à jour sont reprises avec les données de l’exercice telles qu’elles sont aujourd’hui ; les exercices qui n’existent plus ne peuvent pas être reconstitués.'
+  ])}
+  ${H('Utilisation de l’interface')}
+  ${L([
+   '<b>Flèches ‹ ›</b> : semaine précédente ou suivante. « Cette semaine » revient à aujourd’hui.',
+   '<b>Toucher un jour</b> de la barre : affiche ses séances.',
+   '<b>Coupe</b> (gauche) : historique des répétitions et des kilos. <b>Courbe</b> (droite) : charges de référence.',
+   '<b>Engrenage</b> (centre) : réglages. <b>?</b> : cette aide.',
+   '<b>Toucher n’importe où</b> sur la notification de validation : elle se ferme.'
+  ])}
+  ${H('Gestion des actions')}
+  ${L([
+   '<b>Glisser vers le haut / vers le bas</b> sur le compteur d’un exercice : ajoute ou retire une série.',
+   '<b>Double-clic sur le compteur</b> : passe au maximum, ou remet à zéro.',
+   '<b>Double-clic sur le nom d’un exercice</b> : ouvre la fiche (conseil selon la séance, trois étapes du mouvement).',
+   '<b>Valider</b> (ou Finish) : termine la séance ; le bouton passe en Volt. Un nouveau clic annule.',
+   '<b>Modifier, Reporter, Supprimer</b> : sur une séance non entamée. Supprimer demande une confirmation. Une séance validée ne peut pas être supprimée.',
+   '<b>+ Ajouter un exercice</b> : ajoute des exercices à une séance prévue.',
+   '<b>Titre d’une séance courue ×N</b> : ouvre le compteur du nombre de fois.',
+   '<b>Glisser vers le bas</b> en haut d’une fenêtre PR ou historique : la ferme.'
+  ])}
+  <div style="height:8px"></div>`;
+  document.getElementById('nt').classList.add('show');
+}
+function openTimes(id){
+  const w=W(), s=(w.extra||[]).find(x=>x.id===id); if(!s) return;
+  document.getElementById('modal').innerHTML=`<h2>${esc(s.name)}</h2>
+    <div class="muted" style="margin-bottom:8px">Nombre de séances effectuées</div>
+    <div class="row" style="justify-content:center;gap:20px;align-items:center"><button class="nav" data-tadj="${id}:-1">-</button><b style="font-size:22px">${s.times||1}</b><button class="nav" data-tadj="${id}:1">+</button></div>
+    <button class="close" data-close="1">Fermer</button>`;
+  document.getElementById('ov').classList.add('show');
+}
+function setTimes(id,delta){
+  const w=W(), s=(w.extra||[]).find(x=>x.id===id); if(!s) return;
+  s.times=Math.max(1,(s.times||1)+delta); rebuild(w,s); save(); render(); openTimes(id);
+}
+function removeExtra(id){const w=W();uncredit(w,(w.extra||[]).find(x=>x.id===id));const s=(w.extra||[]).find(x=>x.id===id);if(s&&s.replaces&&w.removed)delete w.removed[s.replaces];w.extra=(w.extra||[]).filter(x=>x.id!==id);delete w.done[id];save();render();toast('Séance retirée')}
+function revertSession(){const w=W();const s=(w.extra||[]).find(x=>x.id===sm.target);if(!s)return;uncredit(w,s);delete w.removed[s.replaces];w.extra=w.extra.filter(x=>x.id!==sm.target);delete w.done[sm.target];save();closeOv();render();toast('Séance rétablie')}
+function closeOv(){document.getElementById('ov').classList.remove('show')}
+
+/* Délégation d'événements */
+const main=document.getElementById('main');
+document.addEventListener('pointerdown',()=>{lp=false;swFired=false},true);
+document.addEventListener('contextmenu',e=>e.preventDefault());
+main.addEventListener('pointerdown',e=>{
+  const p=e.target.closest('[data-sw]');
+  if(p){sw={id:p.dataset.sw,y:e.clientY,dy:0};return}
+  const b=e.target.closest('.exo'); if(!b) return;
+  lp=false; const id=b.dataset.e;
+
+});
+
+let sw=null, swFired=false;
+main.addEventListener('pointermove',e=>{if(sw)sw.dy=e.clientY-sw.y});
+main.addEventListener('pointerup',()=>{
+  if(!sw) return;
+  const d=sw.dy, id=sw.id; sw=null;
+  if(Math.abs(d)>=20){ adjustSeries(id, d<0?1:-1); swFired=true; }
+});
+main.addEventListener('pointercancel',()=>{sw=null});
+main.addEventListener('contextmenu',e=>{if(e.target.closest('.exo'))e.preventDefault()});
+main.addEventListener('click',e=>{
+  if(swFired){swFired=false;return}
+  const b=e.target.closest('.exo');
+  if(b){ if(lp){lp=false;return} if(e.target.closest('[data-sw]')){tapSeries(b.dataset.e);} else {tap(b.dataset.e);} return }
+  const ax=e.target.closest('[data-addex]'); if(ax){openExPicker(ax.dataset.addex);return}
+  const dl=e.target.closest('[data-del]'); if(dl){askDelete(dl.dataset.del);return}
+  const mvb=e.target.closest('[data-move]'); if(mvb){openMove(mvb.dataset.move);return}
+  const md=e.target.closest('[data-mod]'); if(md){openModifyMenu(md.dataset.mod);return}
+  if(e.target.closest('[data-sumtoggle]')){sumOpen=!sumOpen;render();return}
+  if(e.target.closest('[data-add]')){openAddMenu();return}
+  const rm=e.target.closest('[data-rm]');
+  if(rm){removeExtra(rm.dataset.rm);return}
+  const tm=e.target.closest('[data-times]'); if(tm){openTimes(tm.dataset.times);return}
+  const s=e.target.closest('.sdone');
+  if(s){
+    const w=W(); const on=!w.done[s.dataset.s]; w.done[s.dataset.s]=on;
+    if(on){ w.doneDay=w.doneDay||{}; const sx=sessions(w).find(x=>x.id===s.dataset.s); if(sx) w.doneDay[sx.id]=sx.day; } else if(w.doneDay){ delete w.doneDay[s.dataset.s]; }
+    if(on) journalSession(w,s.dataset.s);
+    save(); runRecalc(true);
+    if(on) setTimeout(()=>showNutriNotif(s.dataset.s),900);
+    toast(w.done[s.dataset.s]?'Séance validée':'Séance remise en cours');
+  }
+});
+document.getElementById('days').addEventListener('click',e=>{
+  const b=e.target.closest('.day'); if(!b) return;
+  selDay=+b.dataset.day; render();
+});
+document.getElementById('prev').onclick=()=>{offset--;render()};
+document.getElementById('next').onclick=()=>{offset++;render()};
+document.getElementById('lbl').onclick=()=>{offset=0;selDay=todayIdx;render()};
+document.getElementById('modal').addEventListener('input',e=>{
+  const i=e.target; if(!i.matches||!i.matches('input[data-cat]')) return;
+  const n=parseInt(i.value,10)||0, r=+i.dataset.reps; const t=i.parentElement.querySelector('.rp');
+  if(t) t.textContent=n?`${r} rep x ${n}`:`${r} rep`;
+});
+document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeOv()});
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target.closest('[data-theme-toggle]')){setTheme(currentTheme()==='dark'?'light':'dark');openSettings();return}
+  if(e.target.closest('[data-prs]')){openPRs();return}
+  if(e.target.closest('[data-prsave]')){savePRs();return}
+  if(e.target.closest('[data-back-settings]')){openSettings();return}
+  const sc=e.target.closest('[data-sec]'); if(sc){ const r=document.querySelector('[data-sec-row="'+sc.dataset.sec+'"]'); if(r) r.style.display=r.style.display==='flex'?'none':'flex'; return; }
+  const lg=e.target.closest('[data-lang]'); if(lg){setLang(lg.dataset.lang);return}
+  const mt=e.target.closest('[data-moveto]'); if(mt){const [mi,md2]=mt.dataset.moveto.split(':'); moveSession(mi,+md2);return}
+  const ra=e.target.closest('[data-rmad]'); if(ra){removeAddon(ra.dataset.rmad);return}
+  const ta=e.target.closest('[data-tadj]'); if(ta){const [ti,td]=ta.dataset.tadj.split(':'); setTimes(ti,+td);return}
+  const o=e.target.closest('[data-opt]'); if(o){showAddDetail(o.dataset.opt);return}
+  const c=e.target.closest('[data-confirm]'); if(c){addSession(c.dataset.confirm);return}
+  if(e.target.closest('[data-back]')){renderMenu();return}
+  if(e.target.closest('[data-revert]')){revertSession();return}
+  if(e.target.closest('[data-close]')){closeOv()}
+});
+
+render();
+document.getElementById('gear').onclick=openSettings;
+document.getElementById('prNav').onclick=()=>{openPRs();document.getElementById('ov').classList.add('show')};
+document.getElementById('hist').onclick=()=>{openHistory();document.getElementById('ov').classList.add('show')};
+
+// ---- Synchronisation Supabase (compte e-mail + code) ----
+const SB_URL='https://dhykpfkuctmgqfwwziux.supabase.co';
+const SB_KEY='sb_publishable_9UhltWSMVwsYPkJT5VslZg_-u1bTYMM';
+let sb=null, sbUser=null, remoteT=null;
+try{ if(window.supabase) sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}}); }catch(e){ sb=null; }
+function queueRemote(){ if(!sb||!sbUser) return; clearTimeout(remoteT); remoteT=setTimeout(pushRemote,1500); }
+async function pushRemote(){
+  if(!sb||!sbUser) return;
+  try{
+    const {error}=await sb.from('app_data').upsert({user_id:sbUser.id,data:data,updated_at:new Date().toISOString()});
+    if(error) throw error;
+  }catch(e){ toast(T('Synchronisation impossible, sauvegarde locale conservée')); }
+}
+async function pullRemote(){
+  if(!sb||!sbUser) return;
+  try{
+    const {data:row,error}=await sb.from('app_data').select('data').eq('user_id',sbUser.id).maybeSingle();
+    if(error) throw error;
+    if(row&&row.data&&Object.keys(row.data).length){
+      data=row.data; try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
+      data.weeks=data.weeks||{}; data.notes=data.notes||{};
+      render(); toast(T('Données synchronisées'));
+    } else { await pushRemote(); }
+  }catch(e){ toast(T('Synchronisation impossible, sauvegarde locale conservée')); }
+}
+async function sbSendCode(email){ if(!sb) return 'Connexion indisponible'; const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}}); return error?error.message:null; }
+async function sbVerify(email,token){ if(!sb) return 'Connexion indisponible'; const {error}=await sb.auth.verifyOtp({email,token,type:'email'}); return error?error.message:null; }
+async function sbSignOut(){ if(sb) await sb.auth.signOut(); sbUser=null; toast(T('Déconnecté')); }
+async function sbSignIn(email,password){ if(!sb) return 'Connexion indisponible'; const {error}=await sb.auth.signInWithPassword({email,password}); return error?error.message:null; }
+function openAccount(){
+  let body;
+  if(sbUser){
+    body=`<div class="muted" style="margin-bottom:12px">${T('Connecté')} : ${esc(sbUser.email)}</div><button class="back" id="acOut">${T('Se déconnecter')}</button>`;
+  } else {
+    body=`<input id="acEmail" type="email" autocomplete="username" placeholder="${T('Adresse e-mail')}" style="width:100%;margin-bottom:10px"><input id="acPwd" type="password" autocomplete="current-password" placeholder="${T('Mot de passe')}" style="width:100%;margin-bottom:10px"><button class="close" id="acLogin">${T('Se connecter')}</button>`;
+  }
+  document.getElementById('modal').innerHTML=`<h2>${T('Compte')}</h2>${body}<button class="back" data-close="1">${T('Fermer')}</button>`;
+  document.getElementById('ov').classList.add('show');
+  const $=id=>document.getElementById(id);
+  if($('acLogin')) $('acLogin').onclick=async()=>{
+    const em=$('acEmail').value.trim(), pw=$('acPwd').value;
+    if(!em||!pw) return;
+    const err=await sbSignIn(em,pw);
+    if(err){ toast(err); return; }
+    sbUser=(await sb.auth.getUser()).data.user; closeOv(); await pullRemote();
+  };
+  if($('acOut')) $('acOut').onclick=async()=>{ await sbSignOut(); openAccount(); };
+}
+async function initSupabase(){
+  if(!sb) return;
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){ sbUser=session.user; await pullRemote(); }
+    sb.auth.onAuthStateChange((_e,sess)=>{ sbUser=sess?sess.user:null; });
+  }catch(e){}
+}
+async function initStore(){
+  try{
+    const c=window.claude, db=c&&await c.use('db'), user=c&&await c.use('user');
+    const uid=user?await user.id():null;
+    if(db&&uid){
+      dbRef=db.doc('data/users/'+uid+'/state');
+      const s=await dbRef.get();
+      if(s.exists){ const j=(s.data()||{}).json; if(j) data=JSON.parse(j); }
+      else { save(); }
+    }
+  }catch(e){ toast('Stockage distant indisponible : sauvegarde locale'); }
+  data.weeks=data.weeks||{}; data.notes=data.notes||{};
+  await initSupabase();
+  offset=0; selDay=todayIdx;
+  if(data.theme) document.documentElement.dataset.theme=data.theme;
+  render();
+}
+initStore();
+(function(){
+  const m=document.getElementById('modal'); let y0=null;
+  m.addEventListener('touchstart',e=>{ y0=(m.querySelector('.stickyh')&&m.scrollTop<=0)?e.touches[0].clientY:null; },{passive:true});
+  m.addEventListener('touchend',e=>{ if(y0!==null && e.changedTouches[0].clientY-y0>90 && m.scrollTop<=0) closeOv(); y0=null; },{passive:true});
+})();
+</script>
+<script>if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }</script>
+</body>
+</html>
