@@ -789,13 +789,14 @@ function phaseF(){const a=new Date(2026,10,2), t=wstart(offset), wk=Math.round((
 function currentTheme(){return document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
 function setTheme(t){document.documentElement.dataset.theme=t;data.theme=t;save()}
 function openSettings(){
-  document.getElementById('modal').innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px"><h2 style="margin:0">${T('Réglages')}</h2>${sbUser?`<button class="mini" id="accBtn">${T('Se déconnecter')}</button>`:''}</div>
+  document.getElementById('modal').innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px"><h2 style="margin:0">${T('Réglages')}</h2></div>
     <div class="row" style="align-items:center"><span>${T('Mode sombre')}</span><button class="switch" role="switch" aria-label="Mode sombre" aria-checked="${currentTheme()==='dark'}" id="sw"></button></div>
     <div class="row" style="align-items:center"><span>${T('Personnel')}</span><button class="mini" id="perBtn">${TX('Configurer')}</button></div>
     <div class="row" style="align-items:center"><span>${T('Langue')}</span><button class="mini" id="langBtn">${data.lang==='en'?'EN':'FR'}</button></div>
     <div class="row" style="align-items:center"><span>${TX('Aide')}</span><button class="mini" id="helpBtn" style="width:30px;padding:4px 0;text-align:center">?</button></div>
 
-    <button class="back" data-close="1">Fermer</button>`;
+    <button class="back" data-close="1">Fermer</button>
+    ${sbUser?`<div style="text-align:center;margin-top:12px"><button class="mini" id="accBtn">${T('Se déconnecter')}</button></div>`:''}`;
   document.getElementById('ov').classList.add('show');
   document.getElementById('sw').onclick=()=>{setTheme(currentTheme()==='dark'?'light':'dark');openSettings()};
   document.getElementById('perBtn').onclick=()=>openPersonal();
