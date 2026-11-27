@@ -96,6 +96,7 @@ h1,h2,h3,.lbl,.sumh b,.hbox h2,.stickyh h2{font-family:Montserrat,Nunito,sans-se
 .mod{width:100%;margin-top:6px;padding:10px;border-radius:12px;border:1px solid var(--line);background:none;font-weight:600}
 .addex{display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:0;margin:0 0 8px;padding:6px 10px;border:none;border-radius:8px;background:var(--bg);color:var(--accInk);font-size:15px;font-weight:600}
 .addwrap{display:flex;justify-content:center}
+.addmenu{background:#C6F432;color:#111;border:none;border-radius:999px;padding:9px 28px;font-weight:700;font-size:15px}
 .hbtns{display:flex;gap:6px;flex-wrap:nowrap;white-space:nowrap}
 .sh h3{padding-left:12px;margin:0}
 .hb{padding:6px 9px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:12px;font-weight:600;white-space:nowrap}
@@ -465,8 +466,8 @@ function render(){
             <span class="m">${e.pace?(e.km?e.km+' km · ':'')+e.pace:e.reps+' rep'}${e.kg?' · '+e.kg+' kg':''}</span>
             <span class="p" data-sw="${e.id}">${c}/${e.sets}</span></button>`;
         }).join('')}
-        <div class="addwrap">${can&&!s.log?`<button class="addex" data-addex="${s.id}" aria-label="Ajouter un exercice">${T('Ajouter un exercice')}</button>`:''}</div><button class="sdone ${isDone?'on':''}" data-s="${s.id}">${isDone?'✓ '+T('Terminé'):T('Valider')}</button>
-      </section>`;
+<button class="sdone ${isDone?'on':''}" data-s="${s.id}">${isDone?'✓ '+T('Terminé'):T('Valider')}</button>
+      </section>${can&&!s.log?`<div class="addwrap" style="margin:-4px 0 14px"><button class="addmenu" data-addmenu="${s.id}">${T('Ajouter')}</button></div>`:''}`;
     }).join('') || (jDays().includes(selDay)?'':`<div class="empty">Pas de séance ce jour.<br><button class="addbtn" data-add="1">+ Ajouter une séance</button></div>`)}
   `;
 }
@@ -660,6 +661,13 @@ function openInfo(id){
 const EXTRA={course:{name:'Course à pied',exos:[{name:'Course',sets:1,reps:1,kg:0}]},judo:{name:'Entraînement judo',exos:[{name:'Séance de judo',sets:1,reps:1,kg:0}]}};
 const CROSSFIT={name:'Séance crossfit',exos:[{name:'Burpees',sets:3,reps:10,kg:0},{name:'Thrusters',sets:3,reps:10,kg:40},{name:'Box jumps',sets:3,reps:10,kg:0}]};
 function srcOf(k){if(EXTRA[k])return EXTRA[k];if(k==='crossfit')return CROSSFIT;const t=TEMPLATE.find(s=>s.id===k);return{name:t.name,exos:t.exos}}
+function openAddChoice(sid){
+  document.getElementById('modal').innerHTML=`<h2>${T('Ajouter')} · ${dayL(selDay)}</h2>
+    <button class="opt" data-choose="session">${T('Ajouter une séance')}</button>
+    <button class="opt" data-choose="ex:${sid}">${T('Ajouter un exercice')}</button>
+    <button class="back" data-close="1">${T('Annuler')}</button>`;
+  document.getElementById('ov').classList.add('show');
+}
 function openAddMenu(){ sm={mode:'add',day:selDay,target:null,revertible:false}; renderMenu(); }
 function openModifyMenu(id){
   const s=sessions(W()).find(x=>x.id===id); if(!s) return;
@@ -670,7 +678,6 @@ function renderMenu(){
   const canDel=!!ts&&!W().done[ts.id]&&!ts.extra&&!ts.log&&!ts.exos.some(e=>(W().sets[e.id]||0)>0);
   document.getElementById('modal').innerHTML=`<h2>${sm.mode==='add'?'Ajouter une séance':'Modifier la séance'} · ${dayL(sm.day)}</h2>
     <button class="opt" data-opt="course">Course à pied</button>
-    <button class="opt" data-opt="judo">Entraînement judo</button>
     <button class="opt" data-opt="crossfit">Séance crossfit</button>
     ${TEMPLATE.map(s=>`<button class="opt" data-opt="${s.id}">${esc(s.name)}</button>`).join('')}
     ${sm.revertible?'<button class="opt" data-revert="1">↶ Rétablir la séance prévue</button>':''}
@@ -736,8 +743,8 @@ function addSession(k){
     if(old){ uncredit(w,old); replaces=old.replaces; w.extra=w.extra.filter(x=>x.id!==sm.target); delete w.done[sm.target]; }
     else { replaces=sm.target; w.removed[sm.target]=true; }
   }
-  w.extra.push({id,name:src.name,day:sm.day,extra:true,log:sm.mode!=='modify',replaces,times:1,base:src.exos,credits:{},exos:src.exos.map((e,i)=>({id:id+'_'+i,name:e.name,sets:e.sets,reps:e.reps,kg:e.kg}))});
-  const ns=w.extra[w.extra.length-1]; w.done[ns.id]=true; rebuild(w,ns);
+  w.extra.push({id,name:src.name,day:sm.day,extra:true,log:false,replaces,times:1,base:src.exos,credits:{},exos:src.exos.map((e,i)=>({id:id+'_'+i,name:e.name,sets:e.sets,reps:e.reps,kg:e.kg}))});
+  const ns=w.extra[w.extra.length-1]; rebuild(w,ns);
   save(); closeOv(); render(); toast('Séance ajoutée');
 }
 function uncredit(w,s){
@@ -1573,6 +1580,7 @@ main.addEventListener('click',e=>{
   if(swFired){swFired=false;return}
   const b=e.target.closest('.exo');
   if(b){ if(lp){lp=false;return} if(e.target.closest('[data-sw]')){tapSeries(b.dataset.e);} else {tap(b.dataset.e);} return }
+  const am=e.target.closest('[data-addmenu]'); if(am){openAddChoice(am.dataset.addmenu);return}
   const ax=e.target.closest('[data-addex]'); if(ax){openExPicker(ax.dataset.addex);return}
   const dl=e.target.closest('[data-del]'); if(dl){askDelete(dl.dataset.del);return}
   const mvb=e.target.closest('[data-move]'); if(mvb){openMove(mvb.dataset.move);return}
@@ -1616,6 +1624,7 @@ document.getElementById('modal').addEventListener('click',e=>{
   const ra=e.target.closest('[data-rmad]'); if(ra){removeAddon(ra.dataset.rmad);return}
   const ta=e.target.closest('[data-tadj]'); if(ta){const [ti,td]=ta.dataset.tadj.split(':'); setTimes(ti,+td);return}
   if(e.target.closest('[data-delsess]')){askDelete(sm.target);return}
+  const ch=e.target.closest('[data-choose]'); if(ch){ const v=ch.dataset.choose; if(v==='session') openAddMenu(); else openExPicker(v.slice(3)); return }
   const o=e.target.closest('[data-opt]'); if(o){showAddDetail(o.dataset.opt);return}
   const c=e.target.closest('[data-confirm]'); if(c){addSession(c.dataset.confirm);return}
   if(e.target.closest('[data-back]')){renderMenu();return}
